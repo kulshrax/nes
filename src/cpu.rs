@@ -1,11 +1,14 @@
-#[derive(Default)]
+use bitflags::bitflags;
+
 pub struct Cpu {
     registers: Registers,
 }
 
 impl Cpu {
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            registers: Registers::new(),
+        }
     }
 }
 
@@ -25,20 +28,23 @@ impl Registers {
     }
 }
 
-#[derive(Default)]
-pub struct Flags(u8);
 
-impl Flags {
-    const CARRY: u8 = 1;
-    const ZERO: u8 = 1 << 1;
-    const IRQ: u8 = 1 << 2;
-    const DECIMAL: u8 = 1 << 3;
-    const BREAK: u8 = 1 << 4;
-    const OVERFLOW: u8 = 1 << 6;
-    const NEGATIVE: u8 = 1 << 7;
+bitflags! {
+    struct Flags: u8 {
+        const CARRY = 1;
+        const ZERO = 1 << 1;
+        const IRQ = 1 << 2;
+        const DECIMAL = 1 << 3;
+        const BREAK = 1 << 4;
+        const UNUSED = 1 << 5;
+        const OVERFLOW = 1 << 6;
+        const NEGATIVE = 1 << 7; 
+    }
+}
 
-    pub fn new() -> Self {
-        Default::default()
+impl Default for Flags {
+    fn default() -> Self {
+        Flags::IRQ | Flags::UNUSED
     }
 }
 

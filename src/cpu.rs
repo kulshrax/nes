@@ -1,5 +1,7 @@
 use bitflags::bitflags;
 
+use crate::mem::{Address, Memory};
+
 #[derive(Default)]
 pub struct Registers {
     // Accumulator.
@@ -34,7 +36,7 @@ bitflags! {
         const BREAK = 1 << 4;
         const UNUSED = 1 << 5;
         const OVERFLOW = 1 << 6;
-        const NEGATIVE = 1 << 7; 
+        const NEGATIVE = 1 << 7;
     }
 }
 
@@ -44,10 +46,7 @@ impl Default for Flags {
     }
 }
 
-
-pub enum Instruction {
-
-}
+pub enum Instruction {}
 
 impl Instruction {
     fn decode(bytes: &[u8]) -> Self {
@@ -68,80 +67,57 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self) {
-
+    // Manually set the CPU's program counter.
+    pub fn set_pc(&mut self, pc: Address) {
+        self.registers.pc = pc;
     }
+
+    pub fn step(&mut self, memory: &mut Memory) {}
 }
 
 /// Methods corresponding to operations in the MOS 6502 instruction set.
-/// 
+///
 /// See http://obelisk.me.uk/6502/reference.html for details about
 /// each instruction.
 impl Cpu {
     /// Add with carry.
-    fn adc(&mut self) {
- 
-    }
+    fn adc(&mut self) {}
 
     /// Logical AND.
-    fn and(&mut self) {
-
-    }
+    fn and(&mut self) {}
 
     /// Arithmetic left shift.
-    fn asl(&mut self) {
-
-    }
+    fn asl(&mut self) {}
 
     /// Branch if carry clear.
-    fn bcc(&mut self) {
-
-    }
+    fn bcc(&mut self) {}
 
     /// Branch if carry set.
-    fn bcs(&mut self) {
-
-    }
+    fn bcs(&mut self) {}
 
     /// Branch if equal.
-    fn beq(&mut self) {
-
-    }
+    fn beq(&mut self) {}
 
     /// Bit test.
-    fn bit(&mut self) {
-
-    }
+    fn bit(&mut self) {}
 
     /// Branch if minus.
-    fn bmi(&mut self) {
-
-    }
+    fn bmi(&mut self) {}
 
     /// Branch if not equal.
-    fn bne(&mut self) {
- 
-    }
+    fn bne(&mut self) {}
 
     /// Branch if positive.
-    fn bpl(&mut self) {
-
-    }
+    fn bpl(&mut self) {}
 
     /// Force interrupt.
-    fn brk(&mut self) {
-
-    }
+    fn brk(&mut self) {}
 
     /// Branch if overflow clear.
-    fn bvc(&mut self) {
-
-    }
+    fn bvc(&mut self) {}
 
     /// Branch if overflow set.
-    fn bvs(&mut self) {
-
-    }
+    fn bvs(&mut self) {}
 
     /// Clear carry flag.
     fn clc(&mut self) {
@@ -164,137 +140,85 @@ impl Cpu {
     }
 
     /// Compare.
-    fn cmp(&mut self) {
-
-    }
+    fn cmp(&mut self) {}
 
     /// Compare X register.
-    fn cpx(&mut self) {
-
-    }
+    fn cpx(&mut self) {}
 
     /// Compare Y register.
-    fn cpy(&mut self) {
-
-    }
+    fn cpy(&mut self) {}
 
     /// Decrement memory.
-    fn dec(&mut self) {
-
-    }
+    fn dec(&mut self) {}
 
     /// Decrement X register.
-    fn dex(&mut self) {
-
-    }
+    fn dex(&mut self) {}
 
     /// Decrement Y register.
-    fn dey(&mut self) {
-
-    }
+    fn dey(&mut self) {}
 
     /// Exclusive OR.
-    fn eor(&mut self) {
-
-    }
+    fn eor(&mut self) {}
 
     /// Incrememnt memory.
-    fn inc(&mut self) {
-
-    }
+    fn inc(&mut self) {}
 
     /// Increment X register.
-    fn inx(&mut self) {
-
-    }
+    fn inx(&mut self) {}
 
     /// Increment Y register.
-    fn iny(&mut self) {
-
-    }
+    fn iny(&mut self) {}
 
     /// Jump.
-    fn jmp(&mut self) {
-        
-    }
+    fn jmp(&mut self) {}
 
     /// Jump to subroutine.
-    fn jsr(&mut self) {
-
-    }
+    fn jsr(&mut self) {}
 
     /// Load accumulator.
-    fn lda(&mut self) {
-
-    }
+    fn lda(&mut self) {}
 
     /// Load X register.
-    fn ldx(&mut self) {
-
-    }
+    fn ldx(&mut self) {}
 
     /// Load Y register.
-    fn ldy(&mut self) {
-        
-    }
+    fn ldy(&mut self) {}
 
     /// Logical shift right.
-    fn lsr(&mut self) {
-
-    }
+    fn lsr(&mut self) {}
 
     /// No operation.
     fn nop(&mut self) {}
 
     /// Logical inclusive OR.
-    fn ora(&mut self) {
-
-    }
+    fn ora(&mut self) {}
 
     /// Push accumulator.
-    fn pha(&mut self) {
-
-    }
+    fn pha(&mut self) {}
 
     /// Push processor status.
-    fn php(&mut self) {
-
-    }
+    fn php(&mut self) {}
 
     /// Pull accumulator.
-    fn pla(&mut self) {
-
-    }
+    fn pla(&mut self) {}
 
     /// Pull processor status.
-    fn plp(&mut self) {
-
-    }
+    fn plp(&mut self) {}
 
     /// Rotate left.
-    fn rol(&mut self) {
-
-    }
+    fn rol(&mut self) {}
 
     /// Rotate right.
-    fn ror(&mut self) {
-
-    }
+    fn ror(&mut self) {}
 
     /// Return from interrupt.
-    fn rti(&mut self) {
-
-    }
+    fn rti(&mut self) {}
 
     /// Return from subroutine.
-    fn rts(&mut self) {
-
-    }
+    fn rts(&mut self) {}
 
     /// Subtract with carry.
-    fn sbc(&mut self) {
-
-    }
+    fn sbc(&mut self) {}
 
     /// Set carry flag.
     fn sec(&mut self) {
@@ -312,19 +236,13 @@ impl Cpu {
     }
 
     /// Store accumulator.
-    fn sta(&mut self) {
-    
-    }
+    fn sta(&mut self) {}
 
     /// Store X register.
-    fn stx(&mut self) {
-
-    }
+    fn stx(&mut self) {}
 
     /// Store Y register.
-    fn sty(&mut self) {
-
-    }
+    fn sty(&mut self) {}
 
     /// Transfer accumulator to X.
     fn tax(&mut self) {

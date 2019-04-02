@@ -15,7 +15,7 @@
 //! 6502 (http://www.obelisk.me.uk/6502/) was an invaluable resource
 //! for this implementation.
 
-use std::{fmt::Debug, num::Wrapping};
+use std::num::Wrapping;
 
 use bitflags::bitflags;
 
@@ -94,7 +94,7 @@ impl Default for Flags {
     }
 }
 
-trait AddressingMode: Debug {
+trait AddressingMode {
     /// Load a value from the location specified by this addressing mode.
     /// This may be loaded from a location in memory, from a register,
     /// from an immediate value, or from a combination of these (in the
@@ -115,9 +115,7 @@ trait AddressingMode: Debug {
     /// addressing mode. This will panic for modes where this is not
     /// possible. (For example, attempting to get the address of 
     /// a register or immediate value)
-    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
-        panic!("Cannot compute address for mode: {:?}", &self);
-    }
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address;
 
 }
 
@@ -127,7 +125,11 @@ trait AddressingMode: Debug {
 /// As such, this mode implements neither load nor store.
 #[derive(Copy, Clone, Debug)]
 struct Implicit;
-impl AddressingMode for Implicit {}
+impl AddressingMode for Implicit {
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        panic!("Implicitly addressed instructions have no target address");
+    }
+}
 
 /// Accumulator addresssing means that the instruction should load
 /// or store a value directly to/from the A register.
@@ -141,6 +143,10 @@ impl AddressingMode for Accumulator {
     fn store(&self, _memory: &mut Memory, registers: &mut Registers, value: u8) {
         registers.a = value;
     }
+
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        panic!("Cannot take address of accumulator");
+    }
 }
 
 /// Immediate addressing denotes that an immediate value was given
@@ -151,6 +157,10 @@ struct Immediate(u8);
 impl AddressingMode for Immediate {
     fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
         self.0
+    }
+
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        panic!("Cannot take address of immediate value");
     }
 }
 

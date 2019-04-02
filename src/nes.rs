@@ -16,7 +16,7 @@ impl Nes {
     }
 
     pub fn run(&mut self, rom: &Rom) {
-        self.memory.load(rom);
+        self.memory.load_rom(rom);
         self.cpu.set_pc(0);
         loop {
             self.cpu.step(&mut self.memory);

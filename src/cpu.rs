@@ -113,10 +113,9 @@ trait Target {
 
     /// Return the address of the target location specified by this
     /// addressing mode. This will panic for modes where this is not
-    /// possible. (For example, attempting to get the address of 
+    /// possible. (For example, attempting to get the address of
     /// a register or immediate value)
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address;
-
 }
 
 /// Implicit addressing denotes instructions which do not require a source
@@ -207,7 +206,7 @@ impl Target for ZeroPageYTarget {
 /// current program counter. The instruction takes an 8-bit operand
 /// which is treated as a signed relative offset from the current
 /// program counter. Note that the program counter is itself incremented
-/// during the execution of this instruction, so the final target 
+/// during the execution of this instruction, so the final target
 /// address will be (program counter + operand + 2).
 struct RelativeTarget(u8);
 impl Target for RelativeTarget {
@@ -227,7 +226,7 @@ impl Target for AbsoluteTarget {
 }
 
 /// X-indexed absolute addressing takes a 16-bit address as an operand
-/// and adds the 8-bit value of the X register (which is treated as an 
+/// and adds the 8-bit value of the X register (which is treated as an
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
 struct AbsoluteXTarget(Address);
@@ -238,7 +237,7 @@ impl Target for AbsoluteXTarget {
 }
 
 /// Y-indexed absolute addressing takes a 16-bit address as an operand
-/// and adds the 8-bit value of the Y register (which is treated as an 
+/// and adds the 8-bit value of the Y register (which is treated as an
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
 struct AbsoluteYTarget(Address);
@@ -249,8 +248,8 @@ impl Target for AbsoluteYTarget {
 }
 
 /// Indirect addressing is only supported by the JMP instruction.
-/// In this addressing mode, the operand is the 16-bit address of 
-/// the least significant byte of a little-endian 16-bit value 
+/// In this addressing mode, the operand is the 16-bit address of
+/// the least significant byte of a little-endian 16-bit value
 /// which is then used as the target location for the operation.
 #[derive(Copy, Clone, Debug)]
 struct IndirectTarget(Address);
@@ -258,12 +257,12 @@ impl Target for IndirectTarget {
     fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
         let lsb = memory.load(self.0) as Address;
         let msb = memory.load(self.0 + 1) as Address;
-        (msb << 8) | lsb 
+        (msb << 8) | lsb
     }
 }
 
-/// Indexed indirect addressing assumes that the program has a table 
-/// of addresses stored on the zero page. The 8-bit operand is treated 
+/// Indexed indirect addressing assumes that the program has a table
+/// of addresses stored on the zero page. The 8-bit operand is treated
 /// as the starting address of the lookup table, and the value of the  
 /// X register is treated as the offset of the least significant byte
 /// of the target address within the table. Once found, the value
@@ -273,23 +272,30 @@ impl Target for IndirectTarget {
 struct IndexedIndirectTarget(u8);
 impl Target for IndexedIndirectTarget {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let addr = (self.0 + registers.x) as Address;
-        let lsb = memory.load(addr) as Address;
-        let msb = memory.load(addr + 1) as Address;
-        (msb << 8) | lsb 
+        let lsb_addr = (Wrapping(self.0) + Wrapping(registers.x)).0 as Address;
+        let lsb = memory.load(lsb_addr) as Address;
+
+        let msb_addr = (Wrapping(self.0) + Wrapping(registers.x) + Wrapping(1)).0 as Address;
+        let msb = memory.load(msb_addr) as Address;
+
+        (msb << 8) | lsb
     }
 }
 
 /// Indirect indexed addressing takes an 8-bit operand which is treated
 /// as the location of the least significant byte of a 16-bit little
 /// endian address stored on the zero page. The value of the Y register
-/// is added to this address to determine the target location. 
+/// is added to this address to determine the target location.
 #[derive(Copy, Clone, Debug)]
 struct IndirectIndexedTarget(u8);
 impl Target for IndirectIndexedTarget {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let lsb = memory.load(self.0 as Address) as Address;
-        let msb = memory.load(self.0 as Address + 1) as Address;
+        let lsb_addr = self.0 as Address;
+        let lsb = memory.load(lsb_addr) as Address;
+
+        let msb_addr = (Wrapping(self.0) + Wrapping(1)).0 as Address;
+        let msb = memory.load(msb_addr) as Address;
+
         let addr = (msb << 8) | lsb;
         addr + registers.y as Address
     }
@@ -370,9 +376,7 @@ impl Target for AddressingMode {
     }
 }
 
-enum Operation {
-
-}
+enum Operation {}
 
 struct Instruction {
     op: Operation,

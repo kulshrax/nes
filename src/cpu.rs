@@ -99,17 +99,26 @@ trait AddressingMode: Debug {
     /// This may be loaded from a location in memory, from a register,
     /// from an immediate value, or from a combination of these (in the
     /// case of indexed and indirect addressing modes).
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        panic!("Loads not supported for address mode: {:?}", &self);
+    fn load(&self, memory: &Memory, registers: &Registers) -> u8 {
+        memory.load(self.address(memory, registers))
     }
 
     /// Store a value to the location specified by this addressing mode.
     /// This may be loaded from a location in memory, from a register,
     /// from an immediate value, or from a combination of these (in the
     /// case of indexed and indirect addressing modes).
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        panic!("Stores not supported for address mode: {:?}", &self);
+    fn store(&self, memory: &mut Memory, registers: &mut Registers, value: u8) {
+        memory.store(self.address(memory, registers), value);
     }
+
+    /// Return the address of the target location specified by this
+    /// addressing mode. This will panic for modes where this is not
+    /// possible. (For example, attempting to get the address of 
+    /// a register or immediate value)
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        panic!("Cannot compute address for mode: {:?}", &self);
+    }
+
 }
 
 /// Implicit addressing denotes instructions which do not require a source
@@ -155,12 +164,8 @@ impl AddressingMode for Immediate {
 #[derive(Copy, Clone, Debug)]
 struct ZeroPage(u8);
 impl AddressingMode for ZeroPage {
-    fn load(&self, memory: &Memory, _registers: &Registers) -> u8 {
-        memory.load(self.0 as Address)
-    }
-
-    fn store(&self, memory: &mut Memory, _registers: &mut Registers, value: u8) {
-        memory.store(self.0 as Address, value);
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        self.0 as Address
     }
 }
 
@@ -171,14 +176,8 @@ impl AddressingMode for ZeroPage {
 #[derive(Copy, Clone, Debug)]
 struct ZeroPageX(u8);
 impl AddressingMode for ZeroPageX {
-    fn load(&self, memory: &Memory, registers: &Registers) -> u8 {
-        let addr = Wrapping(registers.x) + Wrapping(self.0);
-        memory.load(addr.0 as Address)
-    }
-
-    fn store(&self, memory: &mut Memory, registers: &mut Registers, value: u8) {
-        let addr = Wrapping(registers.x) + Wrapping(self.0);
-        memory.store(addr.0 as Address, value)
+    fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
+        (Wrapping(registers.x) + Wrapping(self.0)).0 as Address
     }
 }
 
@@ -189,12 +188,8 @@ impl AddressingMode for ZeroPageX {
 #[derive(Copy, Clone, Debug)]
 struct ZeroPageY(u8);
 impl AddressingMode for ZeroPageY {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        unimplemented!();
-    }
-
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        unimplemented!();
+    fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
+        (Wrapping(registers.y) + Wrapping(self.0)).0 as Address
     }
 }
 
@@ -203,72 +198,77 @@ impl AddressingMode for ZeroPageY {
 #[derive(Copy, Clone, Debug)]
 struct Absolute(Address);
 impl AddressingMode for Absolute {
-    fn load(&self, memory: &Memory, _registers: &Registers) -> u8 {
-        memory.load(self.0)
-    }
-
-    fn store(&self, memory: &mut Memory, _registers: &mut Registers, value: u8) {
-        memory.store(self.0, value);
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        self.0
     }
 }
 
+/// X-indexed absolute addressing takes a 16-bit address as an operand
+/// and adds the 8-bit value of the X register (which is treated as an 
+/// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
 struct AbsoluteX(Address);
 impl AddressingMode for AbsoluteX {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        unimplemented!();
-    }
-
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        unimplemented!();
+    fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
+        self.0 + registers.x as Address
     }
 }
 
+/// Y-indexed absolute addressing takes a 16-bit address as an operand
+/// and adds the 8-bit value of the Y register (which is treated as an 
+/// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
 struct AbsoluteY(Address);
 impl AddressingMode for AbsoluteY {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        unimplemented!();
-    }
-
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        unimplemented!();
+    fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
+        self.0 + registers.y as Address
     }
 }
 
+/// Indirect addressing is only supported by the JMP instruction.
+/// In this addressing mode, the operand is the 16-bit address of 
+/// the least significant byte of a little-endian 16-bit value 
+/// which is then used as the target location for the operation.
 #[derive(Copy, Clone, Debug)]
 struct Indirect(Address);
 impl AddressingMode for Indirect {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        unimplemented!();
-    }
-
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        unimplemented!();
+    fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
+        let lsb = memory.load(self.0) as Address;
+        let msb = memory.load(self.0 + 1) as Address;
+        (msb << 8) | lsb 
     }
 }
 
+/// Indexed indirect addressing assumes that the program has a table 
+/// of addresses stored on the zero page. The 8-bit operand is treated 
+/// as the starting address of the lookup table, and the value of the  
+/// X register is treated as the offset of the least significant byte
+/// of the target address within the table. Once found, the value
+/// in the table is intepreted as a 16-bit little endian memory address
+/// which is then used as the target address for the operation.
 #[derive(Copy, Clone, Debug)]
-struct IndexedIndirect();
+struct IndexedIndirect(u8);
 impl AddressingMode for IndexedIndirect {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        unimplemented!();
-    }
-
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        unimplemented!();
+    fn address(&self, memory: &Memory, registers: &Registers) -> Address {
+        let addr = (self.0 + registers.x) as Address;
+        let lsb = memory.load(addr) as Address;
+        let msb = memory.load(addr + 1) as Address;
+        (msb << 8) | lsb 
     }
 }
 
+/// Indirect indexed addressing takes an 8-bit operand which is treated
+/// as the location of the least significant byte of a 16-bit little
+/// endian address stored on the zero page. The value of the Y register
+/// is added to this address to determine the target location. 
 #[derive(Copy, Clone, Debug)]
-struct IndirectIndexed();
+struct IndirectIndexed(u8);
 impl AddressingMode for IndirectIndexed {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        unimplemented!();
-    }
-
-    fn store(&self, _memory: &mut Memory, _registers: &mut Registers, _value: u8) {
-        unimplemented!();
+    fn address(&self, memory: &Memory, registers: &Registers) -> Address {
+        let lsb = memory.load(self.0 as Address) as Address;
+        let msb = memory.load(self.0 as Address + 1) as Address;
+        let addr = (msb << 8) | lsb;
+        addr + registers.y as Address
     }
 }
 

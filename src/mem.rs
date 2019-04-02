@@ -23,18 +23,6 @@ impl Memory {
         self.ram[addr as usize]
     }
 
-    /// Interpret the two bytes starting at the given address
-    /// as a 16-bit little-endian memory address.
-    ///
-    /// Used exclusively by the JMP instruction's indirect
-    /// addresssing mode, wherein the address to jump to is
-    /// read from memory.
-    pub fn load_addr(&mut self, addr: Address) -> Address {
-        let lsb = self.ram[addr as usize] as u16;
-        let msb = self.ram[addr as usize + 1] as u16;
-        (msb << 8) | lsb
-    }
-
     pub fn store(&mut self, addr: Address, value: u8) {
         self.ram[addr as usize] = value;
     }

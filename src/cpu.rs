@@ -95,7 +95,7 @@ impl Default for Flags {
     }
 }
 
-trait Target {
+trait AddressingMode {
     /// Return the address of the target location specified by this
     /// addressing mode. This will panic for modes where this is not
     /// possible. (For example, attempting to get the address of
@@ -124,8 +124,8 @@ trait Target {
 /// the function of the instruction itself. (e.g., "clear carry flag (CLC)")
 /// As such, this mode implements neither load nor store.
 #[derive(Copy, Clone, Debug)]
-struct ImplicitTarget;
-impl Target for ImplicitTarget {
+struct Implicit;
+impl AddressingMode for Implicit {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Implicitly addressed instructions have no target address");
     }
@@ -134,8 +134,8 @@ impl Target for ImplicitTarget {
 /// Accumulator addresssing means that the instruction should load
 /// or store a value directly to/from the A register.
 #[derive(Copy, Clone, Debug)]
-struct AccumulatorTarget;
-impl Target for AccumulatorTarget {
+struct Accumulator;
+impl AddressingMode for Accumulator {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Cannot take address of accumulator");
     }
@@ -153,8 +153,8 @@ impl Target for AccumulatorTarget {
 /// as part of the instruction. As such, a load should just directly
 /// use the immediate value. Stores do not make sense in this mode.
 #[derive(Copy, Clone, Debug)]
-struct ImmediateTarget(u8);
-impl Target for ImmediateTarget {
+struct Immediate(u8);
+impl AddressingMode for Immediate {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Cannot take address of immediate value");
     }
@@ -172,8 +172,8 @@ impl Target for ImmediateTarget {
 /// omitted from the argument, making the instruction shorter and faster
 /// to execute (since fewer memory fetches are required during execution).
 #[derive(Copy, Clone, Debug)]
-struct ZeroPageTarget(u8);
-impl Target for ZeroPageTarget {
+struct ZeroPage(u8);
+impl AddressingMode for ZeroPage {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         Address::from(self.0)
     }
@@ -184,8 +184,8 @@ impl Target for ZeroPageTarget {
 /// the sum exceeds 0xFF), and interprets the result as an 8-bit zero
 /// page address, which is then used to load/store the given value.
 #[derive(Copy, Clone, Debug)]
-struct ZeroPageXTarget(u8);
-impl Target for ZeroPageXTarget {
+struct ZeroPageX(u8);
+impl AddressingMode for ZeroPageX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         Address::from((Wrapping(registers.x) + Wrapping(self.0)).0)
     }
@@ -196,8 +196,8 @@ impl Target for ZeroPageXTarget {
 /// the sum exceeds 0xFF), and interprets the result as an 8-bit zero
 /// page address, which is then used to load/store the given value.
 #[derive(Copy, Clone, Debug)]
-struct ZeroPageYTarget(u8);
-impl Target for ZeroPageYTarget {
+struct ZeroPageY(u8);
+impl AddressingMode for ZeroPageY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         Address::from((Wrapping(registers.y) + Wrapping(self.0)).0)
     }
@@ -209,8 +209,8 @@ impl Target for ZeroPageYTarget {
 /// program counter. Note that the program counter is itself incremented
 /// during the execution of this instruction, so the final target
 /// address will be (program counter + operand + 2).
-struct RelativeTarget(i8);
-impl Target for RelativeTarget {
+struct Relative(i8);
+impl AddressingMode for Relative {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         registers.pc + self.0
     }
@@ -219,8 +219,8 @@ impl Target for RelativeTarget {
 /// Absolute addressing means that the instruction 's operand consists
 /// of the exact 16-bit address of the target value.
 #[derive(Copy, Clone, Debug)]
-struct AbsoluteTarget(Address);
-impl Target for AbsoluteTarget {
+struct Absolute(Address);
+impl AddressingMode for Absolute {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         self.0
     }
@@ -230,8 +230,8 @@ impl Target for AbsoluteTarget {
 /// and adds the 8-bit value of the X register (which is treated as an
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
-struct AbsoluteXTarget(Address);
-impl Target for AbsoluteXTarget {
+struct AbsoluteX(Address);
+impl AddressingMode for AbsoluteX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         self.0 + registers.x
     }
@@ -241,8 +241,8 @@ impl Target for AbsoluteXTarget {
 /// and adds the 8-bit value of the Y register (which is treated as an
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
-struct AbsoluteYTarget(Address);
-impl Target for AbsoluteYTarget {
+struct AbsoluteY(Address);
+impl AddressingMode for AbsoluteY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         self.0 + registers.y
     }
@@ -253,8 +253,8 @@ impl Target for AbsoluteYTarget {
 /// the least significant byte of a little-endian 16-bit value
 /// which is then used as the target location for the operation.
 #[derive(Copy, Clone, Debug)]
-struct IndirectTarget(Address);
-impl Target for IndirectTarget {
+struct Indirect(Address);
+impl AddressingMode for Indirect {
     fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
         let lsb = memory.load(self.0);
         let msb = memory.load(self.0 + 1u8);
@@ -270,8 +270,8 @@ impl Target for IndirectTarget {
 /// in the table is intepreted as a 16-bit little endian memory address
 /// which is then used as the target address for the operation.
 #[derive(Copy, Clone, Debug)]
-struct IndexedIndirectTarget(u8);
-impl Target for IndexedIndirectTarget {
+struct IndexedIndirect(u8);
+impl AddressingMode for IndexedIndirect {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
         let lsb_addr = Address::from((Wrapping(self.0) + Wrapping(registers.x)).0);
         let lsb = memory.load(lsb_addr);
@@ -288,8 +288,8 @@ impl Target for IndexedIndirectTarget {
 /// endian address stored on the zero page. The value of the Y register
 /// is added to this address to determine the target location.
 #[derive(Copy, Clone, Debug)]
-struct IndirectIndexedTarget(u8);
-impl Target for IndirectIndexedTarget {
+struct IndirectIndexed(u8);
+impl AddressingMode for IndirectIndexed {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
         let lsb_addr = Address::from(self.0);
         let lsb = memory.load(lsb_addr);
@@ -302,86 +302,8 @@ impl Target for IndirectIndexedTarget {
     }
 }
 
-enum AddressingMode {
-    Implicit(ImplicitTarget),
-    Accumulator(AccumulatorTarget),
-    Immediate(ImmediateTarget),
-    ZeroPage(ZeroPageTarget),
-    ZeroPageX(ZeroPageXTarget),
-    ZeroPageY(ZeroPageYTarget),
-    Relative(RelativeTarget),
-    Absolute(AbsoluteTarget),
-    AbsoluteX(AbsoluteXTarget),
-    AbsoluteY(AbsoluteYTarget),
-    Indirect(IndirectTarget),
-    IndexedIndirect(IndexedIndirectTarget),
-    IndirectIndexed(IndirectIndexedTarget),
-}
-
-impl Target for AddressingMode {
-    fn load(&self, memory: &Memory, registers: &Registers) -> u8 {
-        use AddressingMode::*;
-        match self {
-            Implicit(target) => target.load(memory, registers),
-            Accumulator(target) => target.load(memory, registers),
-            Immediate(target) => target.load(memory, registers),
-            ZeroPage(target) => target.load(memory, registers),
-            ZeroPageX(target) => target.load(memory, registers),
-            ZeroPageY(target) => target.load(memory, registers),
-            Relative(target) => target.load(memory, registers),
-            Absolute(target) => target.load(memory, registers),
-            AbsoluteX(target) => target.load(memory, registers),
-            AbsoluteY(target) => target.load(memory, registers),
-            Indirect(target) => target.load(memory, registers),
-            IndexedIndirect(target) => target.load(memory, registers),
-            IndirectIndexed(target) => target.load(memory, registers),
-        }
-    }
-
-    fn store(&self, memory: &mut Memory, registers: &mut Registers, value: u8) {
-        use AddressingMode::*;
-        match self {
-            Implicit(target) => target.store(memory, registers, value),
-            Accumulator(target) => target.store(memory, registers, value),
-            Immediate(target) => target.store(memory, registers, value),
-            ZeroPage(target) => target.store(memory, registers, value),
-            ZeroPageX(target) => target.store(memory, registers, value),
-            ZeroPageY(target) => target.store(memory, registers, value),
-            Relative(target) => target.store(memory, registers, value),
-            Absolute(target) => target.store(memory, registers, value),
-            AbsoluteX(target) => target.store(memory, registers, value),
-            AbsoluteY(target) => target.store(memory, registers, value),
-            Indirect(target) => target.store(memory, registers, value),
-            IndexedIndirect(target) => target.store(memory, registers, value),
-            IndirectIndexed(target) => target.store(memory, registers, value),
-        }
-    }
-
-    fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        use AddressingMode::*;
-        match self {
-            Implicit(target) => target.address(memory, registers),
-            Accumulator(target) => target.address(memory, registers),
-            Immediate(target) => target.address(memory, registers),
-            ZeroPage(target) => target.address(memory, registers),
-            ZeroPageX(target) => target.address(memory, registers),
-            ZeroPageY(target) => target.address(memory, registers),
-            Relative(target) => target.address(memory, registers),
-            Absolute(target) => target.address(memory, registers),
-            AbsoluteX(target) => target.address(memory, registers),
-            AbsoluteY(target) => target.address(memory, registers),
-            Indirect(target) => target.address(memory, registers),
-            IndexedIndirect(target) => target.address(memory, registers),
-            IndirectIndexed(target) => target.address(memory, registers),
-        }
-    }
-}
-
-enum Operation {}
-
-struct Instruction {
-    op: Operation,
-    am: AddressingMode,
+enum Instruction {
+    
 }
 
 impl Instruction {

@@ -119,18 +119,6 @@ trait AddressingMode {
     }
 }
 
-/// Implicit addressing denotes instructions which do not require a source
-/// or destination to be specified because this information is implied by
-/// the function of the instruction itself. (e.g., "clear carry flag (CLC)")
-/// As such, this mode implements neither load nor store.
-#[derive(Copy, Clone, Debug)]
-struct Implicit;
-impl AddressingMode for Implicit {
-    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
-        panic!("Implicitly addressed instructions have no target address");
-    }
-}
-
 /// Accumulator addresssing means that the instruction should load
 /// or store a value directly to/from the A register.
 #[derive(Copy, Clone, Debug)]

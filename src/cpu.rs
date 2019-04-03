@@ -291,7 +291,85 @@ impl AddressingMode for IndirectIndexed {
 }
 
 enum Instruction {
-    
+    // ADC - Add with carry.
+    AdcI(Immediate),
+    AdcZ(ZeroPage),
+    AdcZX(ZeroPageX),
+    AdcA(Absolute),
+    AdcAX(AbsoluteX),
+    AdcAY(AbsoluteY),
+    AdcIX(IndexedIndirect),
+    AdcIY(IndirectIndexed),
+
+    // AND - Logical AND.
+    AndI(Immediate),
+    AndZ(ZeroPage),
+    AndZX(ZeroPageX),
+    AndA(Absolute),
+    AndAX(AbsoluteX),
+    AndAY(AbsoluteY),
+    AndIX(IndexedIndirect),
+    AndIY(IndirectIndexed),
+
+    // ASL - Arithmetic Shift Left.
+    AslAcc(Accumulator),
+    AslZ(ZeroPage),
+    AslZX(ZeroPageX),
+    AslA(Absolute),
+    AslAZ(AbsoluteX),
+
+    // BCC - Branch if Carry Clear.
+    Bcc(Relative),
+
+    // BCS - Branch if Carry Set.
+    Bcs(Relative),
+
+    // BEQ - Branch if Equal.
+    Beq(Relative),
+
+    // BIT - Bit Test.
+    BitZ(ZeroPage),
+    BitA(Absolute),
+
+    // BMI - Branch if Minus.
+    Bmi(Relative),
+
+    // BNE - Branch if Not Equal.
+    Bne(Relative),
+
+    // BPL - Branch if Positive.
+    Bpl(Relative),
+
+    // BRK - Force Interrupt.
+    Brk,
+
+    // BVC - Branch if Overflow Clear.
+    Bvc(Relative),
+
+    // BVS - Branch if Overflow Set.
+    Bvs(Relative),
+
+    // CLC - Clear Carry Flag.
+    Clc,
+
+    // CLD - Clear Decimal Mode.
+    Cld,
+
+    // CLI - Clear Interrupt Disable.
+    Cli,
+
+    // CLV - Clear Overflow Flag.
+    Clv,
+
+    // CMP - Compare.
+    CmpI(Immediate),
+    CmpZ(ZeroPage),
+    CmpZX(ZeroPageX),
+    CmpA(Absolute),
+    CmpAX(AbsoluteX),
+    CmpAY(AbsoluteY),
+    CmpIX(IndexedIndirect),
+    CmpIY(IndirectIndexed),
 }
 
 impl Instruction {

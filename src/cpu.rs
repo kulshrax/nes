@@ -66,7 +66,8 @@ bitflags! {
         /// Specifies that the CPU should use binary coded decimal
         /// for arithmetic operations. This mode is disabled in the
         /// Ricoh 2A03 CPU used by the NES, but this flag is included
-        /// here for completeness.
+        /// here for completeness. (This allows us to use standard
+        /// 6502 test ROMs to verify that this implementation works.)
         const DECIMAL = 1 << 3;
 
         /// Indicates that a BRK instruction has been executed
@@ -95,6 +96,12 @@ impl Default for Flags {
 }
 
 trait Target {
+    /// Return the address of the target location specified by this
+    /// addressing mode. This will panic for modes where this is not
+    /// possible. (For example, attempting to get the address of
+    /// a register or immediate value)
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address;
+
     /// Load a value from the location specified by this addressing mode.
     /// This may be loaded from a location in memory, from a register,
     /// from an immediate value, or from a combination of these (in the
@@ -110,12 +117,6 @@ trait Target {
     fn store(&self, memory: &mut Memory, registers: &mut Registers, value: u8) {
         memory.store(self.address(memory, registers), value);
     }
-
-    /// Return the address of the target location specified by this
-    /// addressing mode. This will panic for modes where this is not
-    /// possible. (For example, attempting to get the address of
-    /// a register or immediate value)
-    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address;
 }
 
 /// Implicit addressing denotes instructions which do not require a source
@@ -135,16 +136,16 @@ impl Target for ImplicitTarget {
 #[derive(Copy, Clone, Debug)]
 struct AccumulatorTarget;
 impl Target for AccumulatorTarget {
+    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
+        panic!("Cannot take address of accumulator");
+    }
+
     fn load(&self, _memory: &Memory, registers: &Registers) -> u8 {
         registers.a
     }
 
     fn store(&self, _memory: &mut Memory, registers: &mut Registers, value: u8) {
         registers.a = value;
-    }
-
-    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
-        panic!("Cannot take address of accumulator");
     }
 }
 
@@ -154,12 +155,12 @@ impl Target for AccumulatorTarget {
 #[derive(Copy, Clone, Debug)]
 struct ImmediateTarget(u8);
 impl Target for ImmediateTarget {
-    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
-        self.0
-    }
-
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Cannot take address of immediate value");
+    }
+
+    fn load(&self, _memory: &Memory, _registers: &Registers) -> u8 {
+        self.0
     }
 }
 
@@ -174,7 +175,7 @@ impl Target for ImmediateTarget {
 struct ZeroPageTarget(u8);
 impl Target for ZeroPageTarget {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
-        self.0 as Address
+        Address::from(self.0)
     }
 }
 
@@ -186,7 +187,7 @@ impl Target for ZeroPageTarget {
 struct ZeroPageXTarget(u8);
 impl Target for ZeroPageXTarget {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        (Wrapping(registers.x) + Wrapping(self.0)).0 as Address
+        Address::from((Wrapping(registers.x) + Wrapping(self.0)).0)
     }
 }
 
@@ -198,20 +199,20 @@ impl Target for ZeroPageXTarget {
 struct ZeroPageYTarget(u8);
 impl Target for ZeroPageYTarget {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        (Wrapping(registers.y) + Wrapping(self.0)).0 as Address
+        Address::from((Wrapping(registers.y) + Wrapping(self.0)).0)
     }
 }
 
-/// Relative addressing is used to address values relative to the
+/// Relative addressing is used to compute addresses relative to the
 /// current program counter. The instruction takes an 8-bit operand
 /// which is treated as a signed relative offset from the current
 /// program counter. Note that the program counter is itself incremented
 /// during the execution of this instruction, so the final target
 /// address will be (program counter + operand + 2).
-struct RelativeTarget(u8);
+struct RelativeTarget(i8);
 impl Target for RelativeTarget {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        registers.pc + self.0 as Address
+        registers.pc + self.0
     }
 }
 
@@ -232,7 +233,7 @@ impl Target for AbsoluteTarget {
 struct AbsoluteXTarget(Address);
 impl Target for AbsoluteXTarget {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        self.0 + registers.x as Address
+        self.0 + registers.x
     }
 }
 
@@ -243,7 +244,7 @@ impl Target for AbsoluteXTarget {
 struct AbsoluteYTarget(Address);
 impl Target for AbsoluteYTarget {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        self.0 + registers.y as Address
+        self.0 + registers.y
     }
 }
 
@@ -255,9 +256,9 @@ impl Target for AbsoluteYTarget {
 struct IndirectTarget(Address);
 impl Target for IndirectTarget {
     fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
-        let lsb = memory.load(self.0) as Address;
-        let msb = memory.load(self.0 + 1) as Address;
-        (msb << 8) | lsb
+        let lsb = memory.load(self.0);
+        let msb = memory.load(self.0 + 1u8);
+        Address::from([lsb, msb])
     }
 }
 
@@ -272,13 +273,13 @@ impl Target for IndirectTarget {
 struct IndexedIndirectTarget(u8);
 impl Target for IndexedIndirectTarget {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let lsb_addr = (Wrapping(self.0) + Wrapping(registers.x)).0 as Address;
-        let lsb = memory.load(lsb_addr) as Address;
+        let lsb_addr = Address::from((Wrapping(self.0) + Wrapping(registers.x)).0);
+        let lsb = memory.load(lsb_addr);
 
-        let msb_addr = (Wrapping(self.0) + Wrapping(registers.x) + Wrapping(1)).0 as Address;
-        let msb = memory.load(msb_addr) as Address;
+        let msb_addr = Address::from((Wrapping(self.0) + Wrapping(registers.x) + Wrapping(1)).0);
+        let msb = memory.load(msb_addr);
 
-        (msb << 8) | lsb
+        Address::from([lsb, msb])
     }
 }
 
@@ -290,14 +291,14 @@ impl Target for IndexedIndirectTarget {
 struct IndirectIndexedTarget(u8);
 impl Target for IndirectIndexedTarget {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let lsb_addr = self.0 as Address;
-        let lsb = memory.load(lsb_addr) as Address;
+        let lsb_addr = Address::from(self.0);
+        let lsb = memory.load(lsb_addr);
 
-        let msb_addr = (Wrapping(self.0) + Wrapping(1)).0 as Address;
-        let msb = memory.load(msb_addr) as Address;
+        let msb_addr = Address::from((Wrapping(self.0) + Wrapping(1)).0);
+        let msb = memory.load(msb_addr);
 
-        let addr = (msb << 8) | lsb;
-        addr + registers.y as Address
+        let addr = Address::from([lsb, msb]);
+        addr + registers.y
     }
 }
 
@@ -422,7 +423,7 @@ impl Cpu {
 
     fn exec(&mut self, _memory: &mut Memory, op: Instruction) {
         match op {
-            _ => self.registers.pc += 1,
+            _ => self.registers.pc += 1u8,
         }
     }
 }

@@ -1,8 +1,86 @@
-use std::cmp;
+use std::{
+    cmp, fmt,
+    ops::{Add, AddAssign},
+};
 
 use crate::rom::Rom;
 
-pub type Address = u16;
+#[derive(Debug, Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Address(u16);
+
+impl Address {
+    fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl fmt::Display for Address {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#06x}", self.0)
+    }
+}
+
+impl From<u16> for Address {
+    fn from(addr: u16) -> Self {
+        Self(addr)
+    }
+}
+
+/// An address can be constructed from a single byte, in
+/// which case that byte will be used as the least significant
+/// byte of the 16-bit address. This is useful for constructing
+/// addresses for the zero page (the first 256 bytes of memory).
+impl From<u8> for Address {
+    fn from(addr: u8) -> Self {
+        Self(addr as u16)
+    }
+}
+
+/// When constructing an address from an array of two bytes,
+/// the bytes will be interpretted in little endian order.
+impl From<[u8; 2]> for Address {
+    fn from(bytes: [u8; 2]) -> Self {
+        let lsb = bytes[0] as u16;
+        let msb = bytes[1] as u16;
+        Self(msb << 8 | lsb)
+    }
+}
+
+impl Add<u8> for Address {
+    type Output = Self;
+
+    fn add(self, other: u8) -> Self {
+        Self(self.0 + other as u16)
+    }
+}
+
+impl Add<i8> for Address {
+    type Output = Self;
+
+    fn add(self, other: i8) -> Self {
+        if other < 0 {
+            Self(self.0 - -other as u16)
+        } else {
+            Self(self.0 + other as u16)
+        }
+    }
+}
+
+impl AddAssign<u8> for Address {
+    fn add_assign(&mut self, other: u8) {
+        self.0 += other as u16;
+    }
+}
+
+impl AddAssign<i8> for Address {
+    fn add_assign(&mut self, other: i8) {
+        if other < 0 {
+            self.0 -= -other as u16;
+        } else {
+            self.0 += other as u16;
+        }
+    }
+}
 
 pub struct Memory {
     // 16-bit address space.
@@ -20,10 +98,10 @@ impl Memory {
     }
 
     pub fn load(&self, addr: Address) -> u8 {
-        self.ram[addr as usize]
+        self.ram[addr.as_usize()]
     }
 
     pub fn store(&mut self, addr: Address, value: u8) {
-        self.ram[addr as usize] = value;
+        self.ram[addr.as_usize()] = value;
     }
 }

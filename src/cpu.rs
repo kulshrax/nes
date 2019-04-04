@@ -90,7 +90,7 @@ impl Cpu {
     fn bpl(&mut self, _memory: &mut Memory) {}
 
     /// Force interrupt.
-    fn brk(&mut self, _memory: &mut Memory) {}
+    fn brk(&mut self) {}
 
     /// Branch if overflow clear.
     fn bvc(&mut self, _memory: &mut Memory) {}
@@ -99,22 +99,22 @@ impl Cpu {
     fn bvs(&mut self, _memory: &mut Memory) {}
 
     /// Clear carry flag.
-    fn clc(&mut self, _memory: &mut Memory) {
+    fn clc(&mut self) {
         self.registers.p.remove(Flags::CARRY);
     }
 
     /// Clear decimal mode.
-    fn cld(&mut self, _memory: &mut Memory) {
+    fn cld(&mut self) {
         self.registers.p.remove(Flags::DECIMAL);
     }
 
     /// Clear interrupt disable.
-    fn cli(&mut self, _memory: &mut Memory) {
+    fn cli(&mut self) {
         self.registers.p.remove(Flags::INTERRUPT_DISABLE);
     }
 
     /// Clear overflow flag.
-    fn clv(&mut self, _memory: &mut Memory) {
+    fn clv(&mut self) {
         self.registers.p.remove(Flags::OVERFLOW);
     }
 
@@ -131,10 +131,10 @@ impl Cpu {
     fn dec(&mut self, _memory: &mut Memory) {}
 
     /// Decrement X register.
-    fn dex(&mut self, _memory: &mut Memory) {}
+    fn dex(&mut self) {}
 
     /// Decrement Y register.
-    fn dey(&mut self, _memory: &mut Memory) {}
+    fn dey(&mut self) {}
 
     /// Exclusive OR.
     fn eor(&mut self, _memory: &mut Memory) {}
@@ -143,10 +143,10 @@ impl Cpu {
     fn inc(&mut self, _memory: &mut Memory) {}
 
     /// Increment X register.
-    fn inx(&mut self, _memory: &mut Memory) {}
+    fn inx(&mut self) {}
 
     /// Increment Y register.
-    fn iny(&mut self, _memory: &mut Memory) {}
+    fn iny(&mut self) {}
 
     /// Jump.
     fn jmp(&mut self, _memory: &mut Memory) {}
@@ -167,7 +167,7 @@ impl Cpu {
     fn lsr(&mut self, _memory: &mut Memory) {}
 
     /// No operation.
-    fn nop(&mut self, _memory: &mut Memory) {}
+    fn nop(&mut self) {}
 
     /// Logical inclusive OR.
     fn ora(&mut self, _memory: &mut Memory) {}
@@ -200,17 +200,17 @@ impl Cpu {
     fn sbc(&mut self, _memory: &mut Memory) {}
 
     /// Set carry flag.
-    fn sec(&mut self, _memory: &mut Memory) {
+    fn sec(&mut self) {
         self.registers.p.insert(Flags::CARRY);
     }
 
     /// Set decimal flag.
-    fn sed(&mut self, _memory: &mut Memory) {
+    fn sed(&mut self) {
         self.registers.p.insert(Flags::DECIMAL);
     }
 
     /// Set interrupt disable.
-    fn sei(&mut self, _memory: &mut Memory) {
+    fn sei(&mut self) {
         self.registers.p.insert(Flags::INTERRUPT_DISABLE);
     }
 
@@ -224,7 +224,7 @@ impl Cpu {
     fn sty(&mut self, _memory: &mut Memory) {}
 
     /// Transfer accumulator to X.
-    fn tax(&mut self, _memory: &mut Memory) {
+    fn tax(&mut self) {
         let a = self.registers.a;
         self.registers.x = a;
 
@@ -238,7 +238,7 @@ impl Cpu {
     }
 
     /// Transfer accumulator to Y.
-    fn tay(&mut self, _memory: &mut Memory) {
+    fn tay(&mut self) {
         let a = self.registers.a;
         self.registers.y = a;
 
@@ -252,7 +252,7 @@ impl Cpu {
     }
 
     /// Transfer stack pointer to X.
-    fn tsx(&mut self, _memory: &mut Memory) {
+    fn tsx(&mut self) {
         let s = self.registers.s;
         self.registers.x = s;
 
@@ -266,7 +266,7 @@ impl Cpu {
     }
 
     /// Transfer X to accumulator.
-    fn txa(&mut self, _memory: &mut Memory) {
+    fn txa(&mut self) {
         let x = self.registers.x;
         self.registers.a = x;
 
@@ -280,7 +280,7 @@ impl Cpu {
     }
 
     /// Transfer X to stack pointer.
-    fn txs(&mut self, _memory: &mut Memory) {
+    fn txs(&mut self) {
         let x = self.registers.x;
         self.registers.s = x;
 
@@ -294,7 +294,7 @@ impl Cpu {
     }
 
     /// Transfer Y to accumulator.
-    fn tya(&mut self, _memory: &mut Memory) {
+    fn tya(&mut self) {
         let y = self.registers.y;
         self.registers.a = y;
 

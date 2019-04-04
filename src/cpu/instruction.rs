@@ -271,8 +271,8 @@ use Instruction::*;
 
 impl Instruction {
     /// Fetch and decode an instruction from memory at the address
-    /// of the given program counter. Instructions are generally 1 to
-    /// 3 bytes long: a 1-byte opcode followed by a one or two byte
+    /// of the given program counter. Instructions are 1 to 3 bytes 
+    /// long: a 1-byte opcode optionally followed by a one or two byte
     /// argument. This method will increment the program counter by
     /// the appropriate amount after decoding the instruction.
     pub(super) fn fetch(memory: &Memory, pc: &mut Address) -> Self {
@@ -294,7 +294,7 @@ impl Instruction {
 
 /// Read a 16-bit little endian address from memory at the
 /// location of the current program counter, incrementing
-/// the program counter past the address.
+/// the program counter by two.
 fn read_addr(memory: &Memory, pc: &mut Address) -> Address {
     let lsb = memory.load(*pc);
     let msb = memory.load(*pc + 1u8);

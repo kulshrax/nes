@@ -50,7 +50,7 @@ impl AddressingMode for Accumulator {
 /// as part of the instruction. As such, a load should just directly
 /// use the immediate value. Stores do not make sense in this mode.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct Immediate(u8);
+pub(super) struct Immediate(pub(super) u8);
 impl AddressingMode for Immediate {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Cannot take address of immediate value");
@@ -69,7 +69,7 @@ impl AddressingMode for Immediate {
 /// omitted from the argument, making the instruction shorter and faster
 /// to execute (since fewer memory fetches are required during execution).
 #[derive(Copy, Clone, Debug)]
-pub(super) struct ZeroPage(u8);
+pub(super) struct ZeroPage(pub(super) u8);
 impl AddressingMode for ZeroPage {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         Address::from(self.0)
@@ -81,7 +81,7 @@ impl AddressingMode for ZeroPage {
 /// the sum exceeds 0xFF), and interprets the result as an 8-bit zero
 /// page address, which is then used to load/store the given value.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct ZeroPageX(u8);
+pub(super) struct ZeroPageX(pub(super) u8);
 impl AddressingMode for ZeroPageX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         Address::from((Wrapping(registers.x) + Wrapping(self.0)).0)
@@ -93,7 +93,7 @@ impl AddressingMode for ZeroPageX {
 /// the sum exceeds 0xFF), and interprets the result as an 8-bit zero
 /// page address, which is then used to load/store the given value.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct ZeroPageY(u8);
+pub(super) struct ZeroPageY(pub(super) u8);
 impl AddressingMode for ZeroPageY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         Address::from((Wrapping(registers.y) + Wrapping(self.0)).0)
@@ -106,7 +106,7 @@ impl AddressingMode for ZeroPageY {
 /// program counter. Note that the program counter is itself incremented
 /// during the execution of this instruction, so the final target
 /// address will be (program counter + operand + 2).
-pub(super) struct Relative(i8);
+pub(super) struct Relative(pub(super) i8);
 impl AddressingMode for Relative {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         registers.pc + self.0
@@ -116,7 +116,7 @@ impl AddressingMode for Relative {
 /// Absolute addressing means that the instruction 's operand consists
 /// of the exact 16-bit address of the target value.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct Absolute(Address);
+pub(super) struct Absolute(pub(super) Address);
 impl AddressingMode for Absolute {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         self.0
@@ -127,7 +127,7 @@ impl AddressingMode for Absolute {
 /// and adds the 8-bit value of the X register (which is treated as an
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct AbsoluteX(Address);
+pub(super) struct AbsoluteX(pub(super) Address);
 impl AddressingMode for AbsoluteX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         self.0 + registers.x
@@ -138,7 +138,7 @@ impl AddressingMode for AbsoluteX {
 /// and adds the 8-bit value of the Y register (which is treated as an
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct AbsoluteY(Address);
+pub(super) struct AbsoluteY(pub(super) Address);
 impl AddressingMode for AbsoluteY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         self.0 + registers.y
@@ -150,7 +150,7 @@ impl AddressingMode for AbsoluteY {
 /// the least significant byte of a little-endian 16-bit value
 /// which is then used as the target location for the operation.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct Indirect(Address);
+pub(super) struct Indirect(pub(super) Address);
 impl AddressingMode for Indirect {
     fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
         let lsb = memory.load(self.0);
@@ -167,7 +167,7 @@ impl AddressingMode for Indirect {
 /// in the table is intepreted as a 16-bit little endian memory address
 /// which is then used as the target address for the operation.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct IndexedIndirect(u8);
+pub(super) struct IndexedIndirect(pub(super) u8);
 impl AddressingMode for IndexedIndirect {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
         let lsb_addr = Address::from((Wrapping(self.0) + Wrapping(registers.x)).0);
@@ -185,7 +185,7 @@ impl AddressingMode for IndexedIndirect {
 /// endian address stored on the zero page. The value of the Y register
 /// is added to this address to determine the target location.
 #[derive(Copy, Clone, Debug)]
-pub(super) struct IndirectIndexed(u8);
+pub(super) struct IndirectIndexed(pub(super) u8);
 impl AddressingMode for IndirectIndexed {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
         let lsb_addr = Address::from(self.0);

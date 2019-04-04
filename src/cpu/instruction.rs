@@ -267,6 +267,8 @@ pub(super) enum Instruction {
     Tya,
 }
 
+use Instruction::*;
+
 impl Instruction {
     /// Fetch and decode an instruction from memory at the address
     /// of the given program counter. Instructions are generally 1 to
@@ -275,8 +277,35 @@ impl Instruction {
     /// the appropriate amount after decoding the instruction.
     pub(super) fn fetch(memory: &Memory, pc: &mut Address) -> Self {
         let opcode = memory.load(*pc);
+        *pc += 1u8;
         match opcode {
+            0x69 => AdcI(Immediate(read_byte(memory, pc))),
+            0x65 => AdcZ(ZeroPage(read_byte(memory, pc))),
+            0x75 => AdcZX(ZeroPageX(read_byte(memory, pc))),
+            0x6D => AdcA(Absolute(read_addr(memory, pc))),
+            0x7D => AdcAX(AbsoluteX(read_addr(memory, pc))),
+            0x79 => AdcAY(AbsoluteY(read_addr(memory, pc))),
+            0x61 => AdcIX(IndexedIndirect(read_byte(memory, pc))),
+            0x71 => AdcIY(IndirectIndexed(read_byte(memory, pc))),
             illegal => panic!("Illegal opcode: {:#X}", illegal),
         }
     }
+}
+
+/// Read a 16-bit little endian address from memory at the
+/// location of the current program counter, incrementing
+/// the program counter past the address.
+fn read_addr(memory: &Memory, pc: &mut Address) -> Address {
+    let lsb = memory.load(*pc);
+    let msb = memory.load(*pc + 1u8);
+    *pc += 2u8;
+    Address::from([lsb, msb])
+}
+
+/// Read a byte from memory at the location of the current
+/// program coutner, incrementing the program counter by one.
+fn read_byte(memory: &Memory, pc: &mut Address) -> u8 {
+    let byte = memory.load(*pc);
+    *pc += 1u8;
+    byte
 }

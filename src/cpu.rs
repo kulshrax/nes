@@ -21,7 +21,6 @@ mod addressing;
 mod instruction;
 mod registers;
 
-use addressing::*;
 use instruction::Instruction;
 use registers::{Flags, Registers};
 

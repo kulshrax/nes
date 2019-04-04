@@ -15,7 +15,7 @@ impl Address {
 }
 
 impl fmt::Display for Address {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:#06x}", self.0)
     }
 }

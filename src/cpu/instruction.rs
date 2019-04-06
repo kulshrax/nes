@@ -271,7 +271,7 @@ use Instruction::*;
 
 impl Instruction {
     /// Fetch and decode an instruction from memory at the address
-    /// of the given program counter. Instructions are 1 to 3 bytes 
+    /// of the given program counter. Instructions are 1 to 3 bytes
     /// long: a 1-byte opcode optionally followed by a one or two byte
     /// argument. This method will increment the program counter by
     /// the appropriate amount after decoding the instruction.
@@ -289,7 +289,7 @@ impl Instruction {
             0x71 => AdcIY(IndirectIndexed(read_byte(memory, pc))),
             0x29 => AndI(Immediate(read_byte(memory, pc))),
             0x25 => AndZ(ZeroPage(read_byte(memory, pc))),
-            0x35 => AndZX(ZeroPageX(read_byte(memory, pc))), 
+            0x35 => AndZX(ZeroPageX(read_byte(memory, pc))),
             0x2D => AndA(Absolute(read_addr(memory, pc))),
             0x3D => AndAX(AbsoluteX(read_addr(memory, pc))),
             0x39 => AndAY(AbsoluteY(read_addr(memory, pc))),
@@ -378,7 +378,7 @@ impl Instruction {
             0xEA => Nop,
             0x09 => OraI(Immediate(read_byte(memory, pc))),
             0x05 => OraZ(ZeroPage(read_byte(memory, pc))),
-            0x15 => OraZX(ZeroPageX(read_byte(memory, pc))), 
+            0x15 => OraZX(ZeroPageX(read_byte(memory, pc))),
             0x0D => OraA(Absolute(read_addr(memory, pc))),
             0x1D => OraAX(AbsoluteX(read_addr(memory, pc))),
             0x19 => OraAY(AbsoluteY(read_addr(memory, pc))),

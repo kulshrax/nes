@@ -1,7 +1,10 @@
+use log;
+
 use crate::mem::{Address, Memory};
 
 use super::addressing::*;
 
+#[derive(Debug, Copy, Clone)]
 pub(super) enum Instruction {
     // ADC - Add with carry.
     AdcI(Immediate),
@@ -267,8 +270,6 @@ pub(super) enum Instruction {
     Tya,
 }
 
-use Instruction::*;
-
 impl Instruction {
     /// Fetch and decode an instruction from memory at the address
     /// of the given program counter. Instructions are 1 to 3 bytes
@@ -276,9 +277,13 @@ impl Instruction {
     /// argument. This method will increment the program counter by
     /// the appropriate amount after decoding the instruction.
     pub(super) fn fetch(memory: &Memory, pc: &mut Address) -> Self {
-        let opcode = memory.load(*pc);
+        use Instruction::*;
+
+        let start_pc = *pc;
+        let opcode = memory.load(start_pc);
         *pc += 1u8;
-        match opcode {
+
+        let instruction = match opcode {
             0x69 => AdcI(Immediate(read_byte(memory, pc))),
             0x65 => AdcZ(ZeroPage(read_byte(memory, pc))),
             0x75 => AdcZX(ZeroPageX(read_byte(memory, pc))),
@@ -431,7 +436,15 @@ impl Instruction {
             0x9A => Txs,
             0x98 => Tya,
             illegal => panic!("Illegal opcode: {:#X}", illegal),
-        }
+        };
+
+        log::trace!(
+            "PC: {}; OP: {:#X}; Instruction: {:?}",
+            start_pc,
+            opcode,
+            instruction
+        );
+        instruction
     }
 }
 

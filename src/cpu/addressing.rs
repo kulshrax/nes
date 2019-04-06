@@ -106,6 +106,7 @@ impl AddressingMode for ZeroPageY {
 /// program counter. Note that the program counter is itself incremented
 /// during the execution of this instruction, so the final target
 /// address will be (program counter + operand + 2).
+#[derive(Copy, Clone, Debug)]
 pub(super) struct Relative(pub(super) i8);
 impl AddressingMode for Relative {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {

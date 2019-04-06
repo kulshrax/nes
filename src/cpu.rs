@@ -48,8 +48,10 @@ impl Cpu {
     }
 
     fn exec(&mut self, _memory: &mut Memory, op: Instruction) {
+        use Instruction::*;
+
         match op {
-            _ => self.registers.pc += 1u8,
+            _ => (),
         }
     }
 }

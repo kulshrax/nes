@@ -25,12 +25,20 @@ use addressing::{AddressingMode, Relative};
 use instruction::Instruction;
 use registers::{Flags, Registers};
 
+/// The 6502 has a 256-byte stack address space that is fixed
+/// at memory page 1 (addresses 0x100 to 0x1FF). The stack
+/// starts at 0x1FF and grows downward as values are pushed.
+/// The next free location on the stack is pointed at by the 
+/// S register, which contains the low byte of the next 
+/// available stack address. There is no overflow checking 
+/// for the call stack.
+const STACK_START: u16 = 0x0100;
+
 /// Emulated MOS 6502 CPU.
 pub struct Cpu {
     registers: Registers,
 }
 
-/// Public API.
 impl Cpu {
     pub fn new() -> Self {
         Self {
@@ -203,6 +211,10 @@ impl Cpu {
             Txs => self.txs(),
             Tya => self.tya(),
         }
+    }
+
+    fn stack(&self) -> Address {
+        Address::from(STACK_START) + self.registers.s
     }
 
     fn check_zero_or_negative(&mut self, value: u8) {
@@ -391,28 +403,36 @@ impl Cpu {
     fn nop(&mut self) {}
 
     /// Logical inclusive OR.
-    fn ora(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn ora(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = value | self.registers.a;
+        am.store(memory, &mut self.registers, res);
+        self.check_zero_or_negative(res);
     }
 
     /// Push accumulator.
-    fn pha(&mut self, _memory: &mut Memory) {
-        unimplemented!()
+    fn pha(&mut self, memory: &mut Memory) {
+        memory.store(self.stack(), self.registers.a);
+        self.registers.s -= 1;
     }
 
     /// Push processor status.
-    fn php(&mut self, _memory: &mut Memory) {
-        unimplemented!()
+    fn php(&mut self, memory: &mut Memory) {
+        memory.store(self.stack(), self.registers.p.bits());
+        self.registers.s -= 1;
     }
 
     /// Pull accumulator.
-    fn pla(&mut self, _memory: &mut Memory) {
-        unimplemented!()
+    fn pla(&mut self, memory: &mut Memory) {
+        self.registers.s += 1;
+        self.registers.a = memory.load(self.stack());
     }
 
     /// Pull processor status.
-    fn plp(&mut self, _memory: &mut Memory) {
-        unimplemented!()
+    fn plp(&mut self, memory: &mut Memory) {
+        self.registers.s += 1;
+        let bits = memory.load(self.stack());
+        self.registers.p = Flags::from_bits_truncate(bits);
     }
 
     /// Rotate left.
@@ -456,18 +476,21 @@ impl Cpu {
     }
 
     /// Store accumulator.
-    fn sta(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn sta(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = self.registers.a;
+        am.store(memory, &mut self.registers, value);
     }
 
     /// Store X register.
-    fn stx(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn stx(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = self.registers.x;
+        am.store(memory, &mut self.registers, value);
     }
 
     /// Store Y register.
-    fn sty(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn sty(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = self.registers.y;
+        am.store(memory, &mut self.registers, value);
     }
 
     /// Transfer accumulator to X.

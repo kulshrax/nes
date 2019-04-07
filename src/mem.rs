@@ -1,6 +1,6 @@
 use std::{
     cmp, fmt,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 use crate::rom::Rom;
@@ -54,6 +54,14 @@ impl Add<u8> for Address {
     }
 }
 
+impl Sub<u8> for Address {
+    type Output = Self;
+
+    fn sub(self, other: u8) -> Self {
+        Self(self.0 - other as u16)
+    }
+}
+
 impl Add<i8> for Address {
     type Output = Self;
 
@@ -66,9 +74,27 @@ impl Add<i8> for Address {
     }
 }
 
+impl Sub<i8> for Address {
+    type Output = Self;
+
+    fn sub(self, other: i8) -> Self {
+        if other < 0 {
+            Self(self.0 + -other as u16)
+        } else {
+            Self(self.0 - other as u16)
+        }
+    }
+}
+
 impl AddAssign<u8> for Address {
     fn add_assign(&mut self, other: u8) {
         self.0 += other as u16;
+    }
+}
+
+impl SubAssign<u8> for Address {
+    fn sub_assign(&mut self, other: u8) {
+        self.0 -= other as u16;
     }
 }
 
@@ -78,6 +104,16 @@ impl AddAssign<i8> for Address {
             self.0 -= -other as u16;
         } else {
             self.0 += other as u16;
+        }
+    }
+}
+
+impl SubAssign<i8> for Address {
+    fn sub_assign(&mut self, other: i8) {
+        if other < 0 {
+            self.0 += -other as u16;
+        } else {
+            self.0 -= other as u16;
         }
     }
 }

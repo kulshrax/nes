@@ -4,7 +4,7 @@ use crate::mem::{Address, Memory};
 
 use super::registers::Registers;
 
-trait AddressingMode {
+pub(super) trait AddressingMode {
     /// Return the address of the target location specified by this
     /// addressing mode. This will panic for modes where this is not
     /// possible. (For example, attempting to get the address of

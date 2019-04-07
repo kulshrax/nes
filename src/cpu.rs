@@ -21,6 +21,7 @@ mod addressing;
 mod instruction;
 mod registers;
 
+use addressing::{AddressingMode, Relative};
 use instruction::Instruction;
 use registers::{Flags, Registers};
 
@@ -47,11 +48,161 @@ impl Cpu {
         self.exec(memory, op);
     }
 
-    fn exec(&mut self, _memory: &mut Memory, op: Instruction) {
+    fn exec(&mut self, memory: &mut Memory, op: Instruction) {
         use Instruction::*;
 
         match op {
-            _ => (),
+            AdcI(am) => self.adc(am, memory),
+            AdcZ(am) => self.adc(am, memory),
+            AdcZX(am) => self.adc(am, memory),
+            AdcA(am) => self.adc(am, memory),
+            AdcAX(am) => self.adc(am, memory),
+            AdcAY(am) => self.adc(am, memory),
+            AdcIX(am) => self.adc(am, memory),
+            AdcIY(am) => self.adc(am, memory),
+            AndI(am) => self.and(am, memory),
+            AndZ(am) => self.and(am, memory),
+            AndZX(am) => self.and(am, memory),
+            AndA(am) => self.and(am, memory),
+            AndAX(am) => self.and(am, memory),
+            AndAY(am) => self.and(am, memory),
+            AndIX(am) => self.and(am, memory),
+            AndIY(am) => self.and(am, memory),
+            AslAcc(am) => self.asl(am, memory),
+            AslZ(am) => self.asl(am, memory),
+            AslZX(am) => self.asl(am, memory),
+            AslA(am) => self.asl(am, memory),
+            AslAX(am) => self.asl(am, memory),
+            Bcc(am) => self.bcc(am, memory),
+            Bcs(am) => self.bcs(am, memory),
+            Beq(am) => self.beq(am, memory),
+            BitZ(am) => self.bit(am, memory),
+            BitA(am) => self.bit(am, memory),
+            Bmi(am) => self.bmi(am, memory),
+            Bne(am) => self.bne(am, memory),
+            Bpl(am) => self.bpl(am, memory),
+            Brk => self.brk(),
+            Bvc(am) => self.bvc(am, memory),
+            Bvs(am) => self.bvs(am, memory),
+            Clc => self.clc(),
+            Cld => self.cld(),
+            Cli => self.cli(),
+            Clv => self.clv(),
+            CmpI(am) => self.cmp(am, memory),
+            CmpZ(am) => self.cmp(am, memory),
+            CmpZX(am) => self.cmp(am, memory),
+            CmpA(am) => self.cmp(am, memory),
+            CmpAX(am) => self.cmp(am, memory),
+            CmpAY(am) => self.cmp(am, memory),
+            CmpIX(am) => self.cmp(am, memory),
+            CmpIY(am) => self.cmp(am, memory),
+            CpxI(am) => self.cpx(am, memory),
+            CpxZ(am) => self.cpx(am, memory),
+            CpxA(am) => self.cpx(am, memory),
+            CpyI(am) => self.cpy(am, memory),
+            CpyZ(am) => self.cpy(am, memory),
+            CpyA(am) => self.cpy(am, memory),
+            DecZ(am) => self.dec(am, memory),
+            DecZX(am) => self.dec(am, memory),
+            DecA(am) => self.dec(am, memory),
+            DecAX(am) => self.dec(am, memory),
+            Dex => self.dex(),
+            Dey => self.dey(),
+            EorI(am) => self.eor(am, memory),
+            EorZ(am) => self.eor(am, memory),
+            EorZX(am) => self.eor(am, memory),
+            EorA(am) => self.eor(am, memory),
+            EorAX(am) => self.eor(am, memory),
+            EorAY(am) => self.eor(am, memory),
+            EorIX(am) => self.eor(am, memory),
+            EorIY(am) => self.eor(am, memory),
+            IncZ(am) => self.inc(am, memory),
+            IncZX(am) => self.inc(am, memory),
+            IncA(am) => self.inc(am, memory),
+            IncAX(am) => self.inc(am, memory),
+            Inx => self.inx(),
+            Iny => self.iny(),
+            JmpA(am) => self.jmp(am, memory),
+            JmpI(am) => self.jmp(am, memory),
+            Jsr(am) => self.lsr(am, memory),
+            LdaI(am) => self.lda(am, memory),
+            LdaZ(am) => self.lda(am, memory),
+            LdaZX(am) => self.lda(am, memory),
+            LdaA(am) => self.lda(am, memory),
+            LdaAX(am) => self.lda(am, memory),
+            LdaAY(am) => self.lda(am, memory),
+            LdaIX(am) => self.lda(am, memory),
+            LdaIY(am) => self.lda(am, memory),
+            LdxI(am) => self.ldx(am, memory),
+            LdxZ(am) => self.ldx(am, memory),
+            LdxZY(am) => self.ldx(am, memory),
+            LdxA(am) => self.ldx(am, memory),
+            LdxAY(am) => self.ldx(am, memory),
+            LdyI(am) => self.ldy(am, memory),
+            LdyZ(am) => self.ldy(am, memory),
+            LdyZX(am) => self.ldy(am, memory),
+            LdyA(am) => self.ldy(am, memory),
+            LdyAX(am) => self.ldy(am, memory),
+            LsrAcc(am) => self.lsr(am, memory),
+            LsrZ(am) => self.lsr(am, memory),
+            LsrZX(am) => self.lsr(am, memory),
+            LsrA(am) => self.lsr(am, memory),
+            LsrAX(am) => self.lsr(am, memory),
+            Nop => self.nop(),
+            OraI(am) => self.ora(am, memory),
+            OraZ(am) => self.ora(am, memory),
+            OraZX(am) => self.ora(am, memory),
+            OraA(am) => self.ora(am, memory),
+            OraAX(am) => self.ora(am, memory),
+            OraAY(am) => self.ora(am, memory),
+            OraIX(am) => self.ora(am, memory),
+            OraIY(am) => self.ora(am, memory),
+            Pha => self.pha(memory),
+            Php => self.php(memory),
+            Pla => self.pla(memory),
+            Plp => self.plp(memory),
+            RolAcc(am) => self.rol(am, memory),
+            RolZ(am) => self.rol(am, memory),
+            RolZX(am) => self.rol(am, memory),
+            RolA(am) => self.rol(am, memory),
+            RolAX(am) => self.rol(am, memory),
+            RorAcc(am) => self.ror(am, memory),
+            RorZ(am) => self.ror(am, memory),
+            RorZX(am) => self.ror(am, memory),
+            RorA(am) => self.ror(am, memory),
+            RorAX(am) => self.ror(am, memory),
+            Rti => self.rti(memory),
+            Rts => self.rts(memory),
+            SbcI(am) => self.sbc(am, memory),
+            SbcZ(am) => self.sbc(am, memory),
+            SbcZX(am) => self.sbc(am, memory),
+            SbcA(am) => self.sbc(am, memory),
+            SbcAX(am) => self.sbc(am, memory),
+            SbcAY(am) => self.sbc(am, memory),
+            SbcIX(am) => self.sbc(am, memory),
+            SbcIY(am) => self.sbc(am, memory),
+            Sec => self.sec(),
+            Sed => self.sed(),
+            Sei => self.sei(),
+            StaZ(am) => self.sta(am, memory),
+            StaZX(am) => self.sta(am, memory),
+            StaA(am) => self.sta(am, memory),
+            StaAX(am) => self.sta(am, memory),
+            StaAY(am) => self.sta(am, memory),
+            StaIX(am) => self.sta(am, memory),
+            StaIY(am) => self.sta(am, memory),
+            StxZ(am) => self.stx(am, memory),
+            StxZY(am) => self.stx(am, memory),
+            StxA(am) => self.stx(am, memory),
+            StyZ(am) => self.sty(am, memory),
+            StyZX(am) => self.sty(am, memory),
+            StyA(am) => self.sty(am, memory),
+            Tax => self.tax(),
+            Tay => self.tay(),
+            Tsx => self.tsx(),
+            Txa => self.txa(),
+            Txs => self.txs(),
+            Tya => self.tya(),
         }
     }
 }
@@ -62,43 +213,69 @@ impl Cpu {
 /// each instruction.
 impl Cpu {
     /// Add with carry.
-    fn adc(&mut self, _memory: &mut Memory) {}
+    fn adc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Logical AND.
-    fn and(&mut self, _memory: &mut Memory) {}
+    fn and(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Arithmetic left shift.
-    fn asl(&mut self, _memory: &mut Memory) {}
+    fn asl(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if carry clear.
-    fn bcc(&mut self, _memory: &mut Memory) {}
+    fn bcc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if carry set.
-    fn bcs(&mut self, _memory: &mut Memory) {}
+    fn bcs(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if equal.
-    fn beq(&mut self, _memory: &mut Memory) {}
+    fn beq(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Bit test.
-    fn bit(&mut self, _memory: &mut Memory) {}
+    fn bit(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if minus.
-    fn bmi(&mut self, _memory: &mut Memory) {}
+    fn bmi(&mut self, _am: Relative, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if not equal.
-    fn bne(&mut self, _memory: &mut Memory) {}
+    fn bne(&mut self, _am: Relative, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if positive.
-    fn bpl(&mut self, _memory: &mut Memory) {}
+    fn bpl(&mut self, _am: Relative, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Force interrupt.
-    fn brk(&mut self) {}
+    fn brk(&mut self) {
+        unimplemented!()
+    }
 
     /// Branch if overflow clear.
-    fn bvc(&mut self, _memory: &mut Memory) {}
+    fn bvc(&mut self, _am: Relative, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Branch if overflow set.
-    fn bvs(&mut self, _memory: &mut Memory) {}
+    fn bvs(&mut self, _am: Relative, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Clear carry flag.
     fn clc(&mut self) {
@@ -121,85 +298,137 @@ impl Cpu {
     }
 
     /// Compare.
-    fn cmp(&mut self, _memory: &mut Memory) {}
+    fn cmp(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Compare X register.
-    fn cpx(&mut self, _memory: &mut Memory) {}
+    fn cpx(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Compare Y register.
-    fn cpy(&mut self, _memory: &mut Memory) {}
+    fn cpy(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Decrement memory.
-    fn dec(&mut self, _memory: &mut Memory) {}
+    fn dec(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Decrement X register.
-    fn dex(&mut self) {}
+    fn dex(&mut self) {
+        unimplemented!()
+    }
 
     /// Decrement Y register.
-    fn dey(&mut self) {}
+    fn dey(&mut self) {
+        unimplemented!()
+    }
 
     /// Exclusive OR.
-    fn eor(&mut self, _memory: &mut Memory) {}
+    fn eor(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Incrememnt memory.
-    fn inc(&mut self, _memory: &mut Memory) {}
+    fn inc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Increment X register.
-    fn inx(&mut self) {}
+    fn inx(&mut self) {
+        unimplemented!()
+    }
 
     /// Increment Y register.
-    fn iny(&mut self) {}
+    fn iny(&mut self) {
+        unimplemented!()
+    }
 
     /// Jump.
-    fn jmp(&mut self, _memory: &mut Memory) {}
+    fn jmp(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Jump to subroutine.
-    fn jsr(&mut self, _memory: &mut Memory) {}
+    fn jsr(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Load accumulator.
-    fn lda(&mut self, _memory: &mut Memory) {}
+    fn lda(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Load X register.
-    fn ldx(&mut self, _memory: &mut Memory) {}
+    fn ldx(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Load Y register.
-    fn ldy(&mut self, _memory: &mut Memory) {}
+    fn ldy(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Logical shift right.
-    fn lsr(&mut self, _memory: &mut Memory) {}
+    fn lsr(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// No operation.
     fn nop(&mut self) {}
 
     /// Logical inclusive OR.
-    fn ora(&mut self, _memory: &mut Memory) {}
+    fn ora(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Push accumulator.
-    fn pha(&mut self, _memory: &mut Memory) {}
+    fn pha(&mut self, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Push processor status.
-    fn php(&mut self, _memory: &mut Memory) {}
+    fn php(&mut self, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Pull accumulator.
-    fn pla(&mut self, _memory: &mut Memory) {}
+    fn pla(&mut self, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Pull processor status.
-    fn plp(&mut self, _memory: &mut Memory) {}
+    fn plp(&mut self, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Rotate left.
-    fn rol(&mut self, _memory: &mut Memory) {}
+    fn rol(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Rotate right.
-    fn ror(&mut self, _memory: &mut Memory) {}
+    fn ror(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Return from interrupt.
-    fn rti(&mut self, _memory: &mut Memory) {}
+    fn rti(&mut self, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Return from subroutine.
-    fn rts(&mut self, _memory: &mut Memory) {}
+    fn rts(&mut self, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Subtract with carry.
-    fn sbc(&mut self, _memory: &mut Memory) {}
+    fn sbc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Set carry flag.
     fn sec(&mut self) {
@@ -217,13 +446,19 @@ impl Cpu {
     }
 
     /// Store accumulator.
-    fn sta(&mut self, _memory: &mut Memory) {}
+    fn sta(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Store X register.
-    fn stx(&mut self, _memory: &mut Memory) {}
+    fn stx(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Store Y register.
-    fn sty(&mut self, _memory: &mut Memory) {}
+    fn sty(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
+        unimplemented!()
+    }
 
     /// Transfer accumulator to X.
     fn tax(&mut self) {

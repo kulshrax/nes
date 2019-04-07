@@ -204,6 +204,14 @@ impl Cpu {
             Tya => self.tya(),
         }
     }
+
+    fn check_zero_or_negative(&mut self, value: u8) {
+        if value == 0 {
+            self.registers.p.insert(Flags::ZERO);
+        } else if value > 127 {
+            self.registers.p.insert(Flags::NEGATIVE);
+        }
+    }
 }
 
 /// Methods corresponding to operations in the MOS 6502 instruction set.
@@ -217,8 +225,11 @@ impl Cpu {
     }
 
     /// Logical AND.
-    fn and(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn and(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = value & self.registers.a;
+        am.store(memory, &mut self.registers, res);
+        self.check_zero_or_negative(res);
     }
 
     /// Arithmetic left shift.
@@ -463,83 +474,41 @@ impl Cpu {
     fn tax(&mut self) {
         let a = self.registers.a;
         self.registers.x = a;
-
-        if a == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        }
-
-        if a > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.check_zero_or_negative(a);
     }
 
     /// Transfer accumulator to Y.
     fn tay(&mut self) {
         let a = self.registers.a;
         self.registers.y = a;
-
-        if a == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        }
-
-        if a > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.check_zero_or_negative(a);
     }
 
     /// Transfer stack pointer to X.
     fn tsx(&mut self) {
         let s = self.registers.s;
         self.registers.x = s;
-
-        if s == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        }
-
-        if s > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.check_zero_or_negative(s);
     }
 
     /// Transfer X to accumulator.
     fn txa(&mut self) {
         let x = self.registers.x;
         self.registers.a = x;
-
-        if x == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        }
-
-        if x > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.check_zero_or_negative(x);
     }
 
     /// Transfer X to stack pointer.
     fn txs(&mut self) {
         let x = self.registers.x;
         self.registers.s = x;
-
-        if x == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        }
-
-        if x > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.check_zero_or_negative(x);
     }
 
     /// Transfer Y to accumulator.
     fn tya(&mut self) {
         let y = self.registers.y;
         self.registers.a = y;
-
-        if y == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        }
-
-        if y > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.check_zero_or_negative(y);
     }
 }

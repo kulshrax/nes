@@ -50,7 +50,6 @@ impl Cpu {
 
     fn exec(&mut self, memory: &mut Memory, op: Instruction) {
         use Instruction::*;
-
         match op {
             AdcI(am) => self.adc(am, memory),
             AdcZ(am) => self.adc(am, memory),
@@ -469,7 +468,7 @@ impl Cpu {
             self.registers.p.insert(Flags::ZERO);
         }
 
-        if a > 128 {
+        if a > 127 {
             self.registers.p.insert(Flags::NEGATIVE);
         }
     }
@@ -483,7 +482,7 @@ impl Cpu {
             self.registers.p.insert(Flags::ZERO);
         }
 
-        if a > 128 {
+        if a > 127 {
             self.registers.p.insert(Flags::NEGATIVE);
         }
     }
@@ -497,7 +496,7 @@ impl Cpu {
             self.registers.p.insert(Flags::ZERO);
         }
 
-        if s > 128 {
+        if s > 127 {
             self.registers.p.insert(Flags::NEGATIVE);
         }
     }
@@ -511,7 +510,7 @@ impl Cpu {
             self.registers.p.insert(Flags::ZERO);
         }
 
-        if x > 128 {
+        if x > 127 {
             self.registers.p.insert(Flags::NEGATIVE);
         }
     }
@@ -525,7 +524,7 @@ impl Cpu {
             self.registers.p.insert(Flags::ZERO);
         }
 
-        if x > 128 {
+        if x > 127 {
             self.registers.p.insert(Flags::NEGATIVE);
         }
     }
@@ -539,7 +538,7 @@ impl Cpu {
             self.registers.p.insert(Flags::ZERO);
         }
 
-        if y > 128 {
+        if y > 127 {
             self.registers.p.insert(Flags::NEGATIVE);
         }
     }

@@ -239,9 +239,8 @@ impl Cpu {
     /// Logical AND.
     fn and(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &mut self.registers);
-        let res = value & self.registers.a;
-        am.store(memory, &mut self.registers, res);
-        self.check_zero_or_negative(res);
+        self.registers.a &= value;
+        self.check_zero_or_negative(self.registers.a);
     }
 
     /// Arithmetic left shift.
@@ -255,38 +254,60 @@ impl Cpu {
     }
 
     /// Branch if carry clear.
-    fn bcc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn bcc(&mut self, am: Relative, memory: &mut Memory) {
+        if !self.registers.p.contains(Flags::CARRY) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Branch if carry set.
-    fn bcs(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn bcs(&mut self, am: Relative, memory: &mut Memory) {
+        if self.registers.p.contains(Flags::CARRY) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Branch if equal.
-    fn beq(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn beq(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        if self.registers.p.contains(Flags::ZERO) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Bit test.
-    fn bit(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn bit(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = self.registers.a & value;
+        self.registers.p.set(Flags::ZERO, res == 0);
+        self.registers.p.set(Flags::OVERFLOW, value & (1 << 6) > 0);
+        self.registers.p.set(Flags::NEGATIVE, value & (1 << 7) > 0);
     }
 
     /// Branch if minus.
-    fn bmi(&mut self, _am: Relative, _memory: &mut Memory) {
-        unimplemented!()
+    fn bmi(&mut self, am: Relative, memory: &mut Memory) {
+        if self.registers.p.contains(Flags::NEGATIVE) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Branch if not equal.
-    fn bne(&mut self, _am: Relative, _memory: &mut Memory) {
-        unimplemented!()
+    fn bne(&mut self, am: Relative, memory: &mut Memory) {
+        if !self.registers.p.contains(Flags::ZERO) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Branch if positive.
-    fn bpl(&mut self, _am: Relative, _memory: &mut Memory) {
-        unimplemented!()
+    fn bpl(&mut self, am: Relative, memory: &mut Memory) {
+        if !self.registers.p.contains(Flags::NEGATIVE) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Force interrupt.
@@ -295,13 +316,19 @@ impl Cpu {
     }
 
     /// Branch if overflow clear.
-    fn bvc(&mut self, _am: Relative, _memory: &mut Memory) {
-        unimplemented!()
+    fn bvc(&mut self, am: Relative, memory: &mut Memory) {
+        if !self.registers.p.contains(Flags::OVERFLOW) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Branch if overflow set.
-    fn bvs(&mut self, _am: Relative, _memory: &mut Memory) {
-        unimplemented!()
+    fn bvs(&mut self, am: Relative, memory: &mut Memory) {
+        if self.registers.p.contains(Flags::OVERFLOW) {
+            let addr = am.address(memory, &mut self.registers);
+            self.registers.pc = addr;
+        }
     }
 
     /// Clear carry flag.
@@ -355,8 +382,10 @@ impl Cpu {
     }
 
     /// Exclusive OR.
-    fn eor(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn eor(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        self.registers.a ^= value;
+        self.check_zero_or_negative(self.registers.a);
     }
 
     /// Incrememnt memory.
@@ -421,9 +450,8 @@ impl Cpu {
     /// Logical inclusive OR.
     fn ora(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &mut self.registers);
-        let res = value | self.registers.a;
-        am.store(memory, &mut self.registers, res);
-        self.check_zero_or_negative(res);
+        self.registers.a |= value;
+        self.check_zero_or_negative(self.registers.a);
     }
 
     /// Push accumulator.

@@ -28,9 +28,9 @@ use registers::{Flags, Registers};
 /// The 6502 has a 256-byte stack address space that is fixed
 /// at memory page 1 (addresses 0x100 to 0x1FF). The stack
 /// starts at 0x1FF and grows downward as values are pushed.
-/// The next free location on the stack is pointed at by the 
-/// S register, which contains the low byte of the next 
-/// available stack address. There is no overflow checking 
+/// The next free location on the stack is pointed at by the
+/// S register, which contains the low byte of the next
+/// available stack address. There is no overflow checking
 /// for the call stack.
 const STACK_START: u16 = 0x0100;
 
@@ -245,8 +245,13 @@ impl Cpu {
     }
 
     /// Arithmetic left shift.
-    fn asl(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn asl(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = value << 1;
+        am.store(memory, &mut self.registers, res);
+
+        self.registers.p.set(Flags::CARRY, value & (1 << 7) > 0);
+        self.check_zero_or_negative(res);
     }
 
     /// Branch if carry clear.
@@ -395,8 +400,13 @@ impl Cpu {
     }
 
     /// Logical shift right.
-    fn lsr(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn lsr(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = value >> 1;
+        am.store(memory, &mut self.registers, res);
+
+        self.registers.p.set(Flags::CARRY, value & 1 > 0);
+        self.check_zero_or_negative(res);
     }
 
     /// No operation.

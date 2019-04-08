@@ -23,7 +23,10 @@ pub(super) struct Registers {
 
 impl Registers {
     pub(super) fn new() -> Self {
-        Default::default()
+        Self {
+            s: 0xfd,
+            ..Default::default()
+        }
     }
 }
 

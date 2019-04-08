@@ -1,5 +1,3 @@
-use std::num::Wrapping;
-
 use crate::mem::{Address, Memory};
 
 use super::registers::Registers;
@@ -84,7 +82,7 @@ impl AddressingMode for ZeroPage {
 pub(super) struct ZeroPageX(pub(super) u8);
 impl AddressingMode for ZeroPageX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        Address::from((Wrapping(registers.x) + Wrapping(self.0)).0)
+        Address::from(registers.x.wrapping_add(self.0))
     }
 }
 
@@ -96,7 +94,7 @@ impl AddressingMode for ZeroPageX {
 pub(super) struct ZeroPageY(pub(super) u8);
 impl AddressingMode for ZeroPageY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
-        Address::from((Wrapping(registers.y) + Wrapping(self.0)).0)
+        Address::from(registers.y.wrapping_add(self.0))
     }
 }
 
@@ -171,10 +169,10 @@ impl AddressingMode for Indirect {
 pub(super) struct IndexedIndirect(pub(super) u8);
 impl AddressingMode for IndexedIndirect {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let lsb_addr = Address::from((Wrapping(self.0) + Wrapping(registers.x)).0);
+        let lsb_addr = Address::from(self.0.wrapping_add(registers.x));
         let lsb = memory.load(lsb_addr);
 
-        let msb_addr = Address::from((Wrapping(self.0) + Wrapping(registers.x) + Wrapping(1)).0);
+        let msb_addr = Address::from(self.0.wrapping_add(registers.x).wrapping_add(1));
         let msb = memory.load(msb_addr);
 
         Address::from([lsb, msb])
@@ -192,7 +190,7 @@ impl AddressingMode for IndirectIndexed {
         let lsb_addr = Address::from(self.0);
         let lsb = memory.load(lsb_addr);
 
-        let msb_addr = Address::from((Wrapping(self.0) + Wrapping(1)).0);
+        let msb_addr = Address::from(self.0.wrapping_add(1));
         let msb = memory.load(msb_addr);
 
         let addr = Address::from([lsb, msb]);

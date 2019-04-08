@@ -490,13 +490,23 @@ impl Cpu {
     }
 
     /// Rotate left.
-    fn rol(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn rol(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = value.rotate_left(1);
+        am.store(memory, &mut self.registers, res);
+
+        self.registers.p.set(Flags::CARRY, value & (1 << 7) > 0);
+        self.check_zero_or_negative(res);
     }
 
     /// Rotate right.
-    fn ror(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn ror(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &mut self.registers);
+        let res = value.rotate_right(1);
+        am.store(memory, &mut self.registers, res);
+
+        self.registers.p.set(Flags::CARRY, value & 1 > 0);
+        self.check_zero_or_negative(res);
     }
 
     /// Return from interrupt.

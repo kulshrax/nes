@@ -367,18 +367,23 @@ impl Cpu {
     }
 
     /// Decrement memory.
-    fn dec(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn dec(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let mut value = am.load(memory, &mut self.registers);
+        value = value.wrapping_sub(1);
+        am.store(memory, &mut self.registers, value);
+        self.check_zero_or_negative(value);
     }
 
     /// Decrement X register.
     fn dex(&mut self) {
-        unimplemented!()
+        self.registers.x = self.registers.x.wrapping_sub(1);
+        self.check_zero_or_negative(self.registers.x);
     }
 
     /// Decrement Y register.
     fn dey(&mut self) {
-        unimplemented!()
+        self.registers.y = self.registers.y.wrapping_sub(1);
+        self.check_zero_or_negative(self.registers.y);
     }
 
     /// Exclusive OR.
@@ -389,18 +394,23 @@ impl Cpu {
     }
 
     /// Incrememnt memory.
-    fn inc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn inc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let mut value = am.load(memory, &mut self.registers);
+        value = value.wrapping_add(1);
+        am.store(memory, &mut self.registers, value);
+        self.check_zero_or_negative(value);
     }
 
     /// Increment X register.
     fn inx(&mut self) {
-        unimplemented!()
+        self.registers.x = self.registers.x.wrapping_add(1);
+        self.check_zero_or_negative(self.registers.x);
     }
 
     /// Increment Y register.
     fn iny(&mut self) {
-        unimplemented!()
+        self.registers.y = self.registers.y.wrapping_add(1);
+        self.check_zero_or_negative(self.registers.y);
     }
 
     /// Jump.

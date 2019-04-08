@@ -385,18 +385,24 @@ impl Cpu {
     }
 
     /// Load accumulator.
-    fn lda(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn lda(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        self.registers.a = value;
+        self.check_zero_or_negative(value);
     }
 
     /// Load X register.
-    fn ldx(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn ldx(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        self.registers.x = value;
+        self.check_zero_or_negative(value);
     }
 
     /// Load Y register.
-    fn ldy(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn ldy(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        self.registers.y = value;
+        self.check_zero_or_negative(value);
     }
 
     /// Logical shift right.

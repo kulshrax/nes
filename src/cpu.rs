@@ -245,14 +245,14 @@ impl Cpu {
 
     /// Logical AND.
     fn and(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         self.registers.a &= value;
         self.check_zero_or_negative(self.registers.a);
     }
 
     /// Arithmetic left shift.
     fn asl(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         let res = value << 1;
         am.store(memory, &mut self.registers, res);
 
@@ -286,7 +286,7 @@ impl Cpu {
 
     /// Bit test.
     fn bit(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         let res = self.registers.a & value;
         self.registers.p.set(Flags::ZERO, res == 0);
         self.registers.p.set(Flags::OVERFLOW, value & (1 << 6) > 0);
@@ -359,23 +359,32 @@ impl Cpu {
     }
 
     /// Compare.
-    fn cmp(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn cmp(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        let (res, carry) = self.registers.a.overflowing_sub(value);
+        self.registers.p.set(Flags::CARRY, carry);
+        self.check_zero_or_negative(res);
     }
 
     /// Compare X register.
-    fn cpx(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn cpx(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        let (res, carry) = self.registers.x.overflowing_sub(value);
+        self.registers.p.set(Flags::CARRY, carry);
+        self.check_zero_or_negative(res);
     }
 
     /// Compare Y register.
-    fn cpy(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn cpy(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        let (res, carry) = self.registers.y.overflowing_sub(value);
+        self.registers.p.set(Flags::CARRY, carry);
+        self.check_zero_or_negative(res);
     }
 
     /// Decrement memory.
     fn dec(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let mut value = am.load(memory, &mut self.registers);
+        let mut value = am.load(memory, &self.registers);
         value = value.wrapping_sub(1);
         am.store(memory, &mut self.registers, value);
         self.check_zero_or_negative(value);
@@ -395,14 +404,14 @@ impl Cpu {
 
     /// Exclusive OR.
     fn eor(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         self.registers.a ^= value;
         self.check_zero_or_negative(self.registers.a);
     }
 
     /// Incrememnt memory.
     fn inc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let mut value = am.load(memory, &mut self.registers);
+        let mut value = am.load(memory, &self.registers);
         value = value.wrapping_add(1);
         am.store(memory, &mut self.registers, value);
         self.check_zero_or_negative(value);
@@ -457,7 +466,7 @@ impl Cpu {
 
     /// Logical shift right.
     fn lsr(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         let res = value >> 1;
         am.store(memory, &mut self.registers, res);
 
@@ -470,7 +479,7 @@ impl Cpu {
 
     /// Logical inclusive OR.
     fn ora(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         self.registers.a |= value;
         self.check_zero_or_negative(self.registers.a);
     }
@@ -498,7 +507,7 @@ impl Cpu {
 
     /// Rotate left.
     fn rol(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         let res = value.rotate_left(1);
         am.store(memory, &mut self.registers, res);
 
@@ -508,7 +517,7 @@ impl Cpu {
 
     /// Rotate right.
     fn ror(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &mut self.registers);
+        let value = am.load(memory, &self.registers);
         let res = value.rotate_right(1);
         am.store(memory, &mut self.registers, res);
 

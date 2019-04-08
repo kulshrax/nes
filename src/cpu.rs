@@ -218,11 +218,8 @@ impl Cpu {
     }
 
     fn check_zero_or_negative(&mut self, value: u8) {
-        if value == 0 {
-            self.registers.p.insert(Flags::ZERO);
-        } else if value > 127 {
-            self.registers.p.insert(Flags::NEGATIVE);
-        }
+        self.registers.p.set(Flags::ZERO, value == 0);
+        self.registers.p.set(Flags::NEGATIVE, value & (1 << 7) > 0);
     }
 }
 

@@ -217,6 +217,16 @@ impl Cpu {
         Address::from(STACK_START) + self.registers.s
     }
 
+    fn push_stack(&mut self, memory: &mut Memory, value: u8) {
+        memory.store(self.stack(), value);
+        self.registers.s -= 1;
+    }
+
+    fn pull_stack(&mut self, memory: &mut Memory) -> u8 {
+        self.registers.s += 1;
+        memory.load(self.stack())
+    }
+
     fn check_zero_or_negative(&mut self, value: u8) {
         self.registers.p.set(Flags::ZERO, value == 0);
         self.registers.p.set(Flags::NEGATIVE, value & (1 << 7) > 0);
@@ -411,13 +421,17 @@ impl Cpu {
     }
 
     /// Jump.
-    fn jmp(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn jmp(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        self.registers.pc = am.address(memory, &mut self.registers);
     }
 
     /// Jump to subroutine.
-    fn jsr(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn jsr(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let ret = self.registers.pc - 1u8;
+        let [lsb, msb] = <[u8; 2]>::from(ret);
+        self.push_stack(memory, msb);
+        self.push_stack(memory, lsb);
+        self.registers.pc = am.address(memory, &mut self.registers);
     }
 
     /// Load accumulator.
@@ -463,26 +477,22 @@ impl Cpu {
 
     /// Push accumulator.
     fn pha(&mut self, memory: &mut Memory) {
-        memory.store(self.stack(), self.registers.a);
-        self.registers.s -= 1;
+        self.push_stack(memory, self.registers.a);
     }
 
     /// Push processor status.
     fn php(&mut self, memory: &mut Memory) {
-        memory.store(self.stack(), self.registers.p.bits());
-        self.registers.s -= 1;
+        self.push_stack(memory, self.registers.p.bits());
     }
 
     /// Pull accumulator.
     fn pla(&mut self, memory: &mut Memory) {
-        self.registers.s += 1;
-        self.registers.a = memory.load(self.stack());
+        self.registers.a = self.pull_stack(memory);
     }
 
     /// Pull processor status.
     fn plp(&mut self, memory: &mut Memory) {
-        self.registers.s += 1;
-        let bits = memory.load(self.stack());
+        let bits = self.pull_stack(memory);
         self.registers.p = Flags::from_bits_truncate(bits);
     }
 
@@ -507,13 +517,20 @@ impl Cpu {
     }
 
     /// Return from interrupt.
-    fn rti(&mut self, _memory: &mut Memory) {
-        unimplemented!()
+    fn rti(&mut self, memory: &mut Memory) {
+        let bits = self.pull_stack(memory);
+        self.registers.p = Flags::from_bits_truncate(bits);
+
+        let lsb = self.pull_stack(memory);
+        let msb = self.pull_stack(memory);
+        self.registers.pc = Address::from([lsb, msb]);
     }
 
     /// Return from subroutine.
-    fn rts(&mut self, _memory: &mut Memory) {
-        unimplemented!()
+    fn rts(&mut self, memory: &mut Memory) {
+        let lsb = self.pull_stack(memory);
+        let msb = self.pull_stack(memory);
+        self.registers.pc = Address::from([lsb, msb]) + 1u8;
     }
 
     /// Subtract with carry.

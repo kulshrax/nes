@@ -3,6 +3,8 @@ use std::{
     ops::{Add, AddAssign, Sub, SubAssign},
 };
 
+use byteorder::{ByteOrder, LittleEndian};
+
 use crate::rom::Rom;
 
 #[derive(Debug, Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
@@ -40,9 +42,15 @@ impl From<u8> for Address {
 /// the bytes will be interpretted in little endian order.
 impl From<[u8; 2]> for Address {
     fn from(bytes: [u8; 2]) -> Self {
-        let lsb = bytes[0] as u16;
-        let msb = bytes[1] as u16;
-        Self(msb << 8 | lsb)
+        Self(LittleEndian::read_u16(&bytes))
+    }
+}
+
+impl From<Address> for [u8; 2] {
+    fn from(addr: Address) -> Self {
+        let mut res = [0; 2];
+        LittleEndian::write_u16(&mut res, addr.0);
+        res
     }
 }
 

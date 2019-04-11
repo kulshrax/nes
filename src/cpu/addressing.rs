@@ -152,9 +152,9 @@ impl AddressingMode for AbsoluteY {
 pub(super) struct Indirect(pub(super) Address);
 impl AddressingMode for Indirect {
     fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
-        let lsb = memory.load(self.0);
-        let msb = memory.load(self.0 + 1u8);
-        Address::from([lsb, msb])
+        let low = memory.load(self.0);
+        let high = memory.load(self.0 + 1u8);
+        Address::from([low, high])
     }
 }
 
@@ -169,13 +169,13 @@ impl AddressingMode for Indirect {
 pub(super) struct IndexedIndirect(pub(super) u8);
 impl AddressingMode for IndexedIndirect {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let lsb_addr = Address::from(self.0.wrapping_add(registers.x));
-        let lsb = memory.load(lsb_addr);
+        let low_addr = Address::from(self.0.wrapping_add(registers.x));
+        let low = memory.load(low_addr);
 
-        let msb_addr = Address::from(self.0.wrapping_add(registers.x).wrapping_add(1));
-        let msb = memory.load(msb_addr);
+        let high_addr = Address::from(self.0.wrapping_add(registers.x).wrapping_add(1));
+        let high = memory.load(high_addr);
 
-        Address::from([lsb, msb])
+        Address::from([low, high])
     }
 }
 
@@ -187,13 +187,13 @@ impl AddressingMode for IndexedIndirect {
 pub(super) struct IndirectIndexed(pub(super) u8);
 impl AddressingMode for IndirectIndexed {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
-        let lsb_addr = Address::from(self.0);
-        let lsb = memory.load(lsb_addr);
+        let low_addr = Address::from(self.0);
+        let low = memory.load(low_addr);
 
-        let msb_addr = Address::from(self.0.wrapping_add(1));
-        let msb = memory.load(msb_addr);
+        let high_addr = Address::from(self.0.wrapping_add(1));
+        let high = memory.load(high_addr);
 
-        let addr = Address::from([lsb, msb]);
+        let addr = Address::from([low, high]);
         addr + registers.y
     }
 }

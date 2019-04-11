@@ -463,9 +463,9 @@ impl Cpu {
     /// Jump to subroutine.
     fn jsr(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let ret = self.registers.pc - 1u8;
-        let [lsb, msb] = <[u8; 2]>::from(ret);
-        self.push_stack(memory, msb);
-        self.push_stack(memory, lsb);
+        let [low, high] = <[u8; 2]>::from(ret);
+        self.push_stack(memory, high);
+        self.push_stack(memory, low);
         self.registers.pc = am.address(memory, &mut self.registers);
     }
 
@@ -556,16 +556,16 @@ impl Cpu {
         let bits = self.pull_stack(memory);
         self.registers.p = Flags::from_bits_truncate(bits);
 
-        let lsb = self.pull_stack(memory);
-        let msb = self.pull_stack(memory);
-        self.registers.pc = Address::from([lsb, msb]);
+        let low = self.pull_stack(memory);
+        let high = self.pull_stack(memory);
+        self.registers.pc = Address::from([low, high]);
     }
 
     /// Return from subroutine.
     fn rts(&mut self, memory: &mut Memory) {
-        let lsb = self.pull_stack(memory);
-        let msb = self.pull_stack(memory);
-        self.registers.pc = Address::from([lsb, msb]) + 1u8;
+        let low = self.pull_stack(memory);
+        let high = self.pull_stack(memory);
+        self.registers.pc = Address::from([low, high]) + 1u8;
     }
 
     /// Subtract with carry.

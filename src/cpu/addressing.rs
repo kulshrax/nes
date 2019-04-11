@@ -7,7 +7,7 @@ pub(super) trait AddressingMode {
     /// addressing mode. This will panic for modes where this is not
     /// possible. (For example, attempting to get the address of
     /// a register or immediate value)
-    fn address(&self, _memory: &Memory, _registers: &Registers) -> Address;
+    fn address(&self, memory: &Memory, registers: &Registers) -> Address;
 
     /// Load a value from the location specified by this addressing mode.
     /// This may be loaded from a location in memory, from a register,

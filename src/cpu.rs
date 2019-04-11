@@ -239,8 +239,21 @@ impl Cpu {
 /// each instruction.
 impl Cpu {
     /// Add with carry.
-    fn adc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn adc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        let carry_in = self.registers.p.contains(Flags::CARRY) as u8;
+
+        let (res, carry_out_1) = value.overflowing_add(self.registers.a);
+        let (res, carry_out_2) = res.overflowing_add(carry_in);
+
+        let overflow = twos_complement_overflow(self.registers.a, value, res);
+        self.registers.p.set(Flags::OVERFLOW, overflow);
+
+        self.registers.a = res;
+        self.registers
+            .p
+            .set(Flags::CARRY, carry_out_1 || carry_out_2);
+        self.check_zero_or_negative(value);
     }
 
     /// Logical AND.
@@ -543,8 +556,21 @@ impl Cpu {
     }
 
     /// Subtract with carry.
-    fn sbc(&mut self, _am: impl AddressingMode, _memory: &mut Memory) {
-        unimplemented!()
+    fn sbc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+        let value = am.load(memory, &self.registers);
+        let carry_in = 1 - self.registers.p.contains(Flags::CARRY) as u8;
+
+        let (res, carry_out_1) = value.overflowing_sub(self.registers.a);
+        let (res, carry_out_2) = res.overflowing_sub(carry_in);
+
+        let overflow = twos_complement_overflow(self.registers.a, value, res);
+        self.registers.p.set(Flags::OVERFLOW, overflow);
+
+        self.registers.a = res;
+        self.registers
+            .p
+            .set(Flags::CARRY, carry_out_1 || carry_out_2);
+        self.check_zero_or_negative(value);
     }
 
     /// Set carry flag.
@@ -621,4 +647,13 @@ impl Cpu {
         self.registers.a = y;
         self.check_zero_or_negative(y);
     }
+}
+
+/// Check for two's complement overflow during addition or subtraction
+/// by checking whether the sign bit of each operand matches that of the
+/// result. See the folowing webpage for a more detailed explanation:
+/// http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+#[inline]
+fn twos_complement_overflow(n: u8, m: u8, res: u8) -> bool {
+    (n ^ res) & (m ^ res) & (1 << 7) > 0
 }

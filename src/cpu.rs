@@ -88,7 +88,7 @@ impl Cpu {
             Bmi(am) => self.bmi(am, memory),
             Bne(am) => self.bne(am, memory),
             Bpl(am) => self.bpl(am, memory),
-            Brk => self.brk(),
+            Brk => self.brk(memory),
             Bvc(am) => self.bvc(am, memory),
             Bvs(am) => self.bvs(am, memory),
             Clc => self.clc(),
@@ -231,6 +231,14 @@ impl Cpu {
         self.registers.p.set(Flags::ZERO, value == 0);
         self.registers.p.set(Flags::NEGATIVE, value & (1 << 7) > 0);
     }
+
+    /// Interupt request.
+    fn irq(&mut self) {}
+
+    /// Non-maskable interrupt.
+    fn nmi(&mut self) {}
+
+    fn reset(&mut self) {}
 }
 
 /// Methods corresponding to operations in the MOS 6502 instruction set.
@@ -331,8 +339,13 @@ impl Cpu {
     }
 
     /// Force interrupt.
-    fn brk(&mut self) {
-        unimplemented!()
+    fn brk(&mut self, memory: &mut Memory) {
+        let [low, high] = <[u8; 2]>::from(self.registers.pc);
+        self.push_stack(memory, high);
+        self.push_stack(memory, low);
+        self.push_stack(memory, self.registers.p.bits());
+        self.registers.p.insert(Flags::BREAK);
+        self.irq();
     }
 
     /// Branch if overflow clear.

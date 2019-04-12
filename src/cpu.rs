@@ -34,6 +34,10 @@ use registers::{Flags, Registers};
 /// for the call stack.
 const STACK_START: u16 = 0x0100;
 
+const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
+
+const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
+
 /// Emulated MOS 6502 CPU.
 pub struct Cpu {
     registers: Registers,
@@ -233,10 +237,21 @@ impl Cpu {
     }
 
     /// Interupt request.
-    fn irq(&mut self) {}
+    fn irq(&mut self, memory: &mut Memory) {
+        self.interrupt(memory, &IRQ_VECTOR);
+    }
 
     /// Non-maskable interrupt.
-    fn nmi(&mut self) {}
+    fn nmi(&mut self, memory: &mut Memory) {
+        self.interrupt(memory, &NMI_VECTOR);
+    }
+
+    fn interrupt(&mut self, memory: &mut Memory, vector: &[u16; 2]) {
+        let low = memory.load(Address::from(vector[0]));
+        let high = memory.load(Address::from(vector[1]));
+        let addr = Address::from([low, high]);
+        self.registers.pc = addr;
+    }
 
     fn reset(&mut self) {}
 }
@@ -340,12 +355,21 @@ impl Cpu {
 
     /// Force interrupt.
     fn brk(&mut self, memory: &mut Memory) {
+        // Push program counter and flags to stack.
         let [low, high] = <[u8; 2]>::from(self.registers.pc);
         self.push_stack(memory, high);
         self.push_stack(memory, low);
         self.push_stack(memory, self.registers.p.bits());
+
+        // Set BRK bit so that the interrupt handler can
+        // recognize that it was triggered by a BRK.
         self.registers.p.insert(Flags::BREAK);
-        self.irq();
+
+        // Load the interrupt handler address from a fixed
+        // location in memory, then jump to that address.
+        let low = memory.load(Address::from(IRQ_VECTOR[0]));
+        let high = memory.load(Address::from(IRQ_VECTOR[1]));
+        self.registers.pc = Address::from([low, high]);
     }
 
     /// Branch if overflow clear.

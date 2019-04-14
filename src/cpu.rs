@@ -599,7 +599,7 @@ impl Cpu {
     /// Return from interrupt.
     fn rti(&mut self, memory: &mut Memory) {
         let bits = self.pull_stack(memory);
-        self.registers.p = Flags::from_bits_truncate(bits) | Flags::UNUSED_ALWAYS_ON;
+        self.registers.p = Flags::from_bits_truncate(bits) | Flags::ALWAYS_ON;
 
         let low = self.pull_stack(memory);
         let high = self.pull_stack(memory);

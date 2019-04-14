@@ -80,7 +80,7 @@ bitflags! {
 
         /// This bit is not used for anything but is expected to
         /// always be set.
-        const UNUSED_ALWAYS_ON = 1 << 5;
+        const UNUSED = 1 << 5;
 
         /// Indicates that the result of an arithmetic operation on
         /// signed values would result in an invalid twos-complement
@@ -95,7 +95,7 @@ bitflags! {
         /// Bits 4 and 5 are both unused in the P register; however,
         /// for correctness, these bits must always be present, since
         /// the original CPU considers them to be always switched on.
-        const ALWAYS_ON = Self::BREAK.bits | Self::UNUSED_ALWAYS_ON.bits;
+        const ALWAYS_ON = Self::BREAK.bits | Self::UNUSED.bits;
 
         /// Flags that are set when the CPU is powered on.
         const STARTUP_STATE = Self::INTERRUPT_DISABLE.bits | Self::ALWAYS_ON.bits;
@@ -123,7 +123,7 @@ impl fmt::Display for Flags {
             "-"
         };
         let b = if self.contains(Self::BREAK) { "B" } else { "-" };
-        let u = if self.contains(Self::UNUSED_ALWAYS_ON) {
+        let u = if self.contains(Self::UNUSED) {
             "U"
         } else {
             "-"

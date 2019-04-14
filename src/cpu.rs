@@ -235,11 +235,11 @@ impl Cpu {
 
     fn push_stack(&mut self, memory: &mut Memory, value: u8) {
         memory.store(self.stack(), value);
-        self.registers.s -= 1;
+        self.registers.s = self.registers.s.wrapping_sub(1);
     }
 
     fn pull_stack(&mut self, memory: &mut Memory) -> u8 {
-        self.registers.s += 1;
+        self.registers.s = self.registers.s.wrapping_add(1);
         memory.load(self.stack())
     }
 

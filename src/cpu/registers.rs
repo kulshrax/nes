@@ -27,6 +27,7 @@ impl Registers {
     pub(super) fn new() -> Self {
         Self {
             s: 0xfd,
+            p: Flags::STARTUP_STATE,
             ..Default::default()
         }
     }
@@ -68,6 +69,13 @@ bitflags! {
 
         /// Indicates that a BRK instruction has been executed
         /// and an interrupt has been generated to process it.
+        /// This bit has no significance in the P register; it is
+        /// only set to a meaningful value when P register is
+        /// pushed to the stack prior to executing an interrupt
+        /// handler. The handler may then read the flags from the
+        /// stack to determine if this bit was set (which indicates
+        /// the interrupt was triggered by software (via the BRK
+        /// instruction) rather than by hardware).
         const BREAK = 1 << 4;
 
         /// This bit is not used for anything but is expected to
@@ -84,14 +92,19 @@ bitflags! {
         /// (Specifically, that the sign bit (i.e., bit 7) was set to 1.)
         const NEGATIVE = 1 << 7;
 
+        /// Bits 4 and 5 are both unused in the P register; however,
+        /// for correctness, these bits must always be present, since
+        /// the original CPU considers them to be always switched on.
+        const ALWAYS_ON = Self::BREAK.bits | Self::UNUSED_ALWAYS_ON.bits;
+
         /// Flags that are set when the CPU is powered on.
-        const STARTUP_STATE = Self::INTERRUPT_DISABLE.bits | Self::UNUSED_ALWAYS_ON.bits;
+        const STARTUP_STATE = Self::INTERRUPT_DISABLE.bits | Self::ALWAYS_ON.bits;
     }
 }
 
 impl Default for Flags {
     fn default() -> Self {
-        Flags::STARTUP_STATE
+        Flags::ALWAYS_ON
     }
 }
 

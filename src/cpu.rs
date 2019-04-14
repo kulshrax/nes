@@ -21,7 +21,7 @@ mod addressing;
 mod instruction;
 mod registers;
 
-use addressing::{AddressingMode, Relative};
+use addressing::{Absolute, AddressingMode, Relative};
 use instruction::Instruction;
 use registers::{Flags, Registers};
 
@@ -34,9 +34,17 @@ use registers::{Flags, Registers};
 /// for the call stack.
 const STACK_START: u16 = 0x0100;
 
-const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
-
+/// When the CPU receives an interrupt, it loads an address
+/// from a fixed memory location (known as an interrupt vector)
+/// and sets the program counter to that address. This allows the
+/// program to specify interrupt handlers by writing the address
+/// of the start of the handler code to the appropriate interrupt
+/// vector location. There are several interrupt vectors, each
+/// corresponding to a different kind of interrupt. All of them
+/// stored in the highest bytes of the 16-bit address space.
 const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
+const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
+const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
 
 /// Emulated MOS 6502 CPU.
 pub struct Cpu {
@@ -139,7 +147,7 @@ impl Cpu {
             Iny => self.iny(),
             JmpA(am) => self.jmp(am, memory),
             JmpI(am) => self.jmp(am, memory),
-            Jsr(am) => self.lsr(am, memory),
+            Jsr(am) => self.jsr(am, memory),
             LdaI(am) => self.lda(am, memory),
             LdaZ(am) => self.lda(am, memory),
             LdaZX(am) => self.lda(am, memory),
@@ -237,7 +245,7 @@ impl Cpu {
 
     fn check_zero_or_negative(&mut self, value: u8) {
         self.registers.p.set(Flags::ZERO, value == 0);
-        self.registers.p.set(Flags::NEGATIVE, value & (1 << 7) > 0);
+        self.registers.p.set(Flags::NEGATIVE, value > 127);
     }
 
     /// Interupt request.
@@ -359,15 +367,22 @@ impl Cpu {
 
     /// Force interrupt.
     fn brk(&mut self, memory: &mut Memory) {
-        // Push program counter and flags to stack.
-        let [low, high] = <[u8; 2]>::from(self.registers.pc);
+        // Push program counter to stack.
+        let [low, high] = <[u8; 2]>::from(self.registers.pc + 1u8);
         self.push_stack(memory, high);
         self.push_stack(memory, low);
-        self.push_stack(memory, self.registers.p.bits());
 
-        // Set BRK bit so that the interrupt handler can
-        // recognize that it was triggered by a BRK.
-        self.registers.p.insert(Flags::BREAK);
+        // Push flags to stack. We should set the BREAK flag
+        // in the pushed values to indicate that this IRQ
+        // was triggered by the BRK instruction. The flag
+        // should only be set on the stack and not in the
+        // actual P register.
+        let flags = self.registers.p | Flags::BREAK;
+        self.push_stack(memory, flags.bits());
+
+        // Disable interrupts so that the interrupt handler
+        // is not itself interrupted.
+        self.registers.p.insert(Flags::INTERRUPT_DISABLE);
 
         // Load the interrupt handler address from a fixed
         // location in memory, then jump to that address.
@@ -489,7 +504,7 @@ impl Cpu {
     }
 
     /// Jump to subroutine.
-    fn jsr(&mut self, am: impl AddressingMode, memory: &mut Memory) {
+    fn jsr(&mut self, am: Absolute, memory: &mut Memory) {
         let ret = self.registers.pc - 1u8;
         let [low, high] = <[u8; 2]>::from(ret);
         self.push_stack(memory, high);
@@ -545,7 +560,7 @@ impl Cpu {
 
     /// Push processor status.
     fn php(&mut self, memory: &mut Memory) {
-        let flags = self.registers.p | Flags::BREAK | Flags::UNUSED_ALWAYS_ON;
+        let flags = self.registers.p | Flags::ALWAYS_ON;
         self.push_stack(memory, flags.bits());
     }
 
@@ -558,7 +573,7 @@ impl Cpu {
     /// Pull processor status.
     fn plp(&mut self, memory: &mut Memory) {
         let bits = self.pull_stack(memory);
-        self.registers.p = Flags::from_bits_truncate(bits) | Flags::UNUSED_ALWAYS_ON;
+        self.registers.p = Flags::from_bits_truncate(bits) | Flags::ALWAYS_ON;
     }
 
     /// Rotate left.

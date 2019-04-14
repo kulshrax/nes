@@ -131,12 +131,12 @@ impl SubAssign<i8> for Address {
 
 pub struct Memory {
     // 16-bit address space.
-    ram: [u8; 65535],
+    ram: [u8; 0x10000],
 }
 
 impl Memory {
     pub fn new() -> Self {
-        Self { ram: [0; 65535] }
+        Self { ram: [0; 0x10000] }
     }
 
     pub fn load_rom(&mut self, rom: &Rom) {

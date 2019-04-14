@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::path::PathBuf;
+use std::{path::PathBuf, process::exit};
 
 use env_logger;
 use log;
@@ -26,6 +26,11 @@ struct Args {
 fn main() {
     env_logger::init();
     let args = Args::from_args();
+
+    if !args.rom.is_file() {
+        eprintln!("{:?} is not a file", &args.rom);
+        exit(1);
+    }
 
     log::info!("Loading ROM: {:?}", &args.rom);
     let rom = Rom::load(&args.rom).expect("Failed to load ROM");

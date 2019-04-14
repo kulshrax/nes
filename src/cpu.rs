@@ -696,7 +696,6 @@ impl Cpu {
     fn txs(&mut self) {
         let x = self.registers.x;
         self.registers.s = x;
-        self.check_zero_or_negative(x);
     }
 
     /// Transfer Y to accumulator.

@@ -70,8 +70,9 @@ bitflags! {
         /// and an interrupt has been generated to process it.
         const BREAK = 1 << 4;
 
-        /// This bit is officially unused in the MOS 6502.
-        const UNUSED = 1 << 5;
+        /// This bit is not used for anything but is expected to
+        /// always be set.
+        const UNUSED_ALWAYS_ON = 1 << 5;
 
         /// Indicates that the result of an arithmetic operation on
         /// signed values would result in an invalid twos-complement
@@ -82,12 +83,15 @@ bitflags! {
         /// Indicates that the result of the last operation was negative.
         /// (Specifically, that the sign bit (i.e., bit 7) was set to 1.)
         const NEGATIVE = 1 << 7;
+
+        /// Flags that are set when the CPU is powered on.
+        const STARTUP_STATE = Self::INTERRUPT_DISABLE.bits | Self::UNUSED_ALWAYS_ON.bits;
     }
 }
 
 impl Default for Flags {
     fn default() -> Self {
-        Flags::INTERRUPT_DISABLE | Flags::UNUSED
+        Flags::STARTUP_STATE
     }
 }
 
@@ -106,7 +110,7 @@ impl fmt::Display for Flags {
             "-"
         };
         let b = if self.contains(Self::BREAK) { "B" } else { "-" };
-        let u = if self.contains(Self::UNUSED) {
+        let u = if self.contains(Self::UNUSED_ALWAYS_ON) {
             "U"
         } else {
             "-"

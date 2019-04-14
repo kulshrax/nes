@@ -545,7 +545,8 @@ impl Cpu {
 
     /// Push processor status.
     fn php(&mut self, memory: &mut Memory) {
-        self.push_stack(memory, self.registers.p.bits());
+        let flags = self.registers.p | Flags::BREAK | Flags::UNUSED_ALWAYS_ON;
+        self.push_stack(memory, flags.bits());
     }
 
     /// Pull accumulator.
@@ -556,7 +557,7 @@ impl Cpu {
     /// Pull processor status.
     fn plp(&mut self, memory: &mut Memory) {
         let bits = self.pull_stack(memory);
-        self.registers.p = Flags::from_bits_truncate(bits);
+        self.registers.p = Flags::from_bits_truncate(bits) | Flags::UNUSED_ALWAYS_ON;
     }
 
     /// Rotate left.
@@ -582,7 +583,7 @@ impl Cpu {
     /// Return from interrupt.
     fn rti(&mut self, memory: &mut Memory) {
         let bits = self.pull_stack(memory);
-        self.registers.p = Flags::from_bits_truncate(bits);
+        self.registers.p = Flags::from_bits_truncate(bits) | Flags::UNUSED_ALWAYS_ON;
 
         let low = self.pull_stack(memory);
         let high = self.pull_stack(memory);

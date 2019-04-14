@@ -552,6 +552,7 @@ impl Cpu {
     /// Pull accumulator.
     fn pla(&mut self, memory: &mut Memory) {
         self.registers.a = self.pull_stack(memory);
+        self.check_zero_or_negative(self.registers.a);
     }
 
     /// Pull processor status.

@@ -578,22 +578,38 @@ impl Cpu {
 
     /// Rotate left.
     fn rol(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &self.registers);
-        let res = value.rotate_left(1);
-        am.store(memory, &mut self.registers, res);
+        let mut value = am.load(memory, &self.registers);
 
-        self.registers.p.set(Flags::CARRY, value & (1 << 7) > 0);
-        self.check_zero_or_negative(res);
+        // Current value of the carry flag, which will be
+        // rotated into bit 0.
+        let old_carry = self.registers.p.contains(Flags::CARRY) as u8;
+
+        // Bit 7, which is about to be rotated out into the carry flag.
+        let new_carry = value & (1 << 7) > 0;
+
+        value = (value << 1) | old_carry;
+        am.store(memory, &mut self.registers, value);
+
+        self.registers.p.set(Flags::CARRY, new_carry);
+        self.check_zero_or_negative(value);
     }
 
     /// Rotate right.
     fn ror(&mut self, am: impl AddressingMode, memory: &mut Memory) {
-        let value = am.load(memory, &self.registers);
-        let res = value.rotate_right(1);
-        am.store(memory, &mut self.registers, res);
+        let mut value = am.load(memory, &self.registers);
 
-        self.registers.p.set(Flags::CARRY, value & 1 > 0);
-        self.check_zero_or_negative(res);
+        // Current value of the carry flag, which will be
+        // rotated into bit 7.
+        let old_carry = self.registers.p.contains(Flags::CARRY) as u8;
+
+        // Bit 0, which is about to be rotated out into the carry flag.
+        let new_carry = value & 1 > 0;
+
+        value = (value >> 1) | (old_carry << 7);
+        am.store(memory, &mut self.registers, value);
+
+        self.registers.p.set(Flags::CARRY, new_carry);
+        self.check_zero_or_negative(value);
     }
 
     /// Return from interrupt.

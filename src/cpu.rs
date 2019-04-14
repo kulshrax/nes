@@ -415,24 +415,24 @@ impl Cpu {
     /// Compare.
     fn cmp(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &self.registers);
-        let (res, carry) = self.registers.a.overflowing_sub(value);
-        self.registers.p.set(Flags::CARRY, carry);
+        let (res, overflowed) = self.registers.a.overflowing_sub(value);
+        self.registers.p.set(Flags::CARRY, !overflowed);
         self.check_zero_or_negative(res);
     }
 
     /// Compare X register.
     fn cpx(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &self.registers);
-        let (res, carry) = self.registers.x.overflowing_sub(value);
-        self.registers.p.set(Flags::CARRY, carry);
+        let (res, overflowed) = self.registers.x.overflowing_sub(value);
+        self.registers.p.set(Flags::CARRY, !overflowed);
         self.check_zero_or_negative(res);
     }
 
     /// Compare Y register.
     fn cpy(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &self.registers);
-        let (res, carry) = self.registers.y.overflowing_sub(value);
-        self.registers.p.set(Flags::CARRY, carry);
+        let (res, overflowed) = self.registers.y.overflowing_sub(value);
+        self.registers.p.set(Flags::CARRY, !overflowed);
         self.check_zero_or_negative(res);
     }
 

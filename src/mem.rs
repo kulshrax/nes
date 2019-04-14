@@ -5,7 +5,7 @@ use std::{
 
 use crate::rom::Rom;
 
-#[derive(Debug, Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Address(u16);
 
 impl Address {
@@ -17,6 +17,12 @@ impl Address {
 impl fmt::Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:#06x}", self.0)
+    }
+}
+
+impl fmt::Debug for Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Address({:#06x})", self.0)
     }
 }
 
@@ -70,6 +76,7 @@ impl Add<i8> for Address {
     type Output = Self;
 
     fn add(self, other: i8) -> Self {
+        let other = other as i16;
         if other < 0 {
             Self(self.0 - -other as u16)
         } else {

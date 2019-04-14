@@ -1,5 +1,5 @@
 use crate::cpu::Cpu;
-use crate::mem::Memory;
+use crate::mem::{Address, Memory};
 use crate::rom::Rom;
 
 pub struct Nes {
@@ -15,11 +15,17 @@ impl Nes {
         }
     }
 
-    pub fn run(&mut self, rom: &Rom) {
+    pub fn run(&mut self, rom: &Rom, start: Address) {
         self.memory.load_rom(rom);
-        self.cpu.set_pc(Default::default());
+        self.cpu.set_pc(start);
+        let mut old_pc = start;
         loop {
-            self.cpu.step(&mut self.memory);
+            let pc = self.cpu.step(&mut self.memory);
+            if pc == old_pc {
+                log::info!("Detected infinite loop at {}; stopping CPU", pc);
+                break;
+            }
+            old_pc = pc;
         }
     }
 }

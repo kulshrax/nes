@@ -55,9 +55,13 @@ impl Cpu {
         self.registers.pc = pc;
     }
 
-    pub fn step(&mut self, memory: &mut Memory) {
+    /// Fetch and execute a single instruction. Returns the
+    /// post-operation value of the program counter.
+    pub fn step(&mut self, memory: &mut Memory) -> Address {
         let op = Instruction::fetch(memory, &mut self.registers.pc);
         self.exec(memory, op);
+        log::trace!("Registers: {}", &self.registers);
+        self.registers.pc
     }
 
     fn exec(&mut self, memory: &mut Memory, op: Instruction) {

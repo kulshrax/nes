@@ -1,3 +1,5 @@
+use std::fmt;
+
 use bitflags::bitflags;
 
 use crate::mem::Address;
@@ -27,6 +29,16 @@ impl Registers {
             s: 0xfd,
             ..Default::default()
         }
+    }
+}
+
+impl fmt::Display for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "A: {:#x}, X: {:#x}, Y: {:#x}, S: {:#x}, PC: {}, P: {}",
+            self.a, self.x, self.y, self.s, self.pc, self.p
+        )
     }
 }
 
@@ -76,5 +88,39 @@ bitflags! {
 impl Default for Flags {
     fn default() -> Self {
         Flags::INTERRUPT_DISABLE | Flags::UNUSED
+    }
+}
+
+impl fmt::Display for Flags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let c = if self.contains(Self::CARRY) { "C" } else { "-" };
+        let z = if self.contains(Self::ZERO) { "Z" } else { "-" };
+        let i = if self.contains(Self::INTERRUPT_DISABLE) {
+            "I"
+        } else {
+            "-"
+        };
+        let d = if self.contains(Self::DECIMAL) {
+            "D"
+        } else {
+            "-"
+        };
+        let b = if self.contains(Self::BREAK) { "B" } else { "-" };
+        let u = if self.contains(Self::UNUSED) {
+            "U"
+        } else {
+            "-"
+        };
+        let v = if self.contains(Self::OVERFLOW) {
+            "V"
+        } else {
+            "-"
+        };
+        let n = if self.contains(Self::NEGATIVE) {
+            "N"
+        } else {
+            "-"
+        };
+        write!(f, "[{}{}{}{}{}{}{}{}]", c, z, i, d, b, u, v, n)
     }
 }

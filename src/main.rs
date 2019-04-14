@@ -11,6 +11,7 @@ mod mem;
 mod nes;
 mod rom;
 
+use crate::mem::Address;
 use crate::nes::Nes;
 use crate::rom::Rom;
 
@@ -19,16 +20,16 @@ use crate::rom::Rom;
 struct Args {
     /// NES ROM file to load
     #[structopt(parse(from_os_str))]
-    rom_file: PathBuf,
+    rom: PathBuf,
 }
 
 fn main() {
     env_logger::init();
     let args = Args::from_args();
 
-    log::info!("Loading ROM: {:?}", &args.rom_file);
-    let rom = Rom::load(&args.rom_file).expect("Failed to load ROM");
+    log::info!("Loading ROM: {:?}", &args.rom);
+    let rom = Rom::load(&args.rom).expect("Failed to load ROM");
 
     let mut nes = Nes::new();
-    nes.run(&rom);
+    nes.run(&rom, Address::from(0x400u16));
 }

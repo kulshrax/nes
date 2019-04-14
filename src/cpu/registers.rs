@@ -121,6 +121,6 @@ impl fmt::Display for Flags {
         } else {
             "-"
         };
-        write!(f, "[{}{}{}{}{}{}{}{}]", c, z, i, d, b, u, v, n)
+        write!(f, "[{}{}{}{}{}{}{}{}]", n, v, u, b, d, i, z, c)
     }
 }

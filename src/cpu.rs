@@ -43,7 +43,7 @@ const STACK_START: u16 = 0x0100;
 /// corresponding to a different kind of interrupt. All of them
 /// stored in the highest bytes of the 16-bit address space.
 const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
-const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
+const INIT_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
 const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
 
 /// Emulated MOS 6502 CPU.
@@ -58,9 +58,13 @@ impl Cpu {
         }
     }
 
-    // Manually set the CPU's program counter.
-    pub fn set_pc(&mut self, pc: Address) {
-        self.registers.pc = pc;
+    /// Manually set the address stored in the CPU's initialization
+    /// vector. The CPU will jump to this address on startup or
+    /// reset to begin execution.
+    pub fn set_init(&mut self, memory: &mut Memory, addr: Address) {
+        let [low, high] = <[u8; 2]>::from(addr);
+        memory.store(Address::from(INIT_VECTOR[0]), low);
+        memory.store(Address::from(INIT_VECTOR[1]), high);
     }
 
     pub fn dump_registers(&self) -> String {
@@ -76,6 +80,26 @@ impl Cpu {
         self.registers.pc
     }
 
+    /// Reset the CPU by disabling interrupts and jumping to the
+    /// location specified by the initialization vector.
+    pub fn reset(&mut self, memory: &Memory) {
+        self.registers.p.insert(Flags::INTERRUPT_DISABLE);
+        let low = memory.load(Address::from(INIT_VECTOR[0]));
+        let high = memory.load(Address::from(INIT_VECTOR[1]));
+        self.registers.pc = Address::from([low, high]);
+    }
+
+    /// Interupt request.
+    pub fn irq(&mut self, memory: &mut Memory) {
+        self.interrupt(memory, &IRQ_VECTOR, false);
+    }
+
+    /// Non-maskable interrupt.
+    pub fn nmi(&mut self, memory: &mut Memory) {
+        self.interrupt(memory, &NMI_VECTOR, false);
+    }
+
+    /// Execute the given instruction.
     fn exec(&mut self, memory: &mut Memory, op: Instruction) {
         use Instruction::*;
         match op {
@@ -233,6 +257,38 @@ impl Cpu {
         }
     }
 
+    /// Cause the CPU to stop the normal execution flow and begin
+    /// executing an interrupt handler. The interrupt handler that
+    /// is executed is determined from by the address stored at the
+    /// location specified by the given interrupt vector. The brk
+    /// parameter allows specifying whether this was a software or
+    /// hardware interrupt.
+    fn interrupt(&mut self, memory: &mut Memory, vector: &[u16; 2], brk: bool) {
+        // Push program counter to stack.
+        let [low, high] = <[u8; 2]>::from(self.registers.pc + 1u8);
+        self.push_stack(memory, high);
+        self.push_stack(memory, low);
+
+        // Push flags to stack. Set the BRK flag in the pushed byte
+        // appropriately. In particular, if this interrupt was
+        // triggered by a BRK instruction, then the BRK bit should
+        // be 1 in the pushed value; if the interrupt was triggered
+        // by a hardware interrupt, it should be set to 0.
+        let mut flags = self.registers.p;
+        flags.set(Flags::BREAK, brk);
+        self.push_stack(memory, flags.bits());
+
+        // Disable interrupts so that the interrupt handler
+        // is not itself interrupted.
+        self.registers.p.insert(Flags::INTERRUPT_DISABLE);
+
+        // Load the interrupt handler address from a fixed
+        // location in memory, then jump to that address.
+        let low = memory.load(Address::from(vector[0]));
+        let high = memory.load(Address::from(vector[1]));
+        self.registers.pc = Address::from([low, high]);
+    }
+
     /// Get the current address of the next available memory
     /// location on the call stack.
     fn stack(&self) -> Address {
@@ -266,50 +322,6 @@ impl Cpu {
         self.registers.p.set(Flags::ZERO, value == 0);
         self.registers.p.set(Flags::NEGATIVE, value > 127);
     }
-
-    /// Interupt request.
-    fn irq(&mut self, memory: &mut Memory) {
-        self.interrupt(memory, &IRQ_VECTOR, false);
-    }
-
-    /// Non-maskable interrupt.
-    fn nmi(&mut self, memory: &mut Memory) {
-        self.interrupt(memory, &NMI_VECTOR, false);
-    }
-
-    /// Cause the CPU to stop the normal execution flow and begin
-    /// executing an interrupt handler. The interrupt handler that
-    /// is executed is determined from by the address stored at the
-    /// location specified by the given interrupt vector. The brk
-    /// parameter allows specifying whether this was a software or
-    /// hardware interrupt.
-    fn interrupt(&mut self, memory: &mut Memory, vector: &[u16; 2], brk: bool) {
-        // Push program counter to stack.
-        let [low, high] = <[u8; 2]>::from(self.registers.pc + 1u8);
-        self.push_stack(memory, high);
-        self.push_stack(memory, low);
-
-        // Push flags to stack. Set the BRK flag in the pushed byte
-        // appropriately. In particular, if this interrupt was
-        // triggered by a BRK instruction, then the BRK bit should
-        // be 1 in the pushed value; if the interrupt was triggered
-        // by a hardware interrupt, it should be set to 0.
-        let mut flags = self.registers.p;
-        flags.set(Flags::BREAK, brk);
-        self.push_stack(memory, flags.bits());
-
-        // Disable interrupts so that the interrupt handler
-        // is not itself interrupted.
-        self.registers.p.insert(Flags::INTERRUPT_DISABLE);
-
-        // Load the interrupt handler address from a fixed
-        // location in memory, then jump to that address.
-        let low = memory.load(Address::from(vector[0]));
-        let high = memory.load(Address::from(vector[1]));
-        self.registers.pc = Address::from([low, high]);
-    }
-
-    fn reset(&mut self) {}
 }
 
 /// Methods corresponding to operations in the MOS 6502 instruction set.

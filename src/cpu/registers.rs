@@ -27,7 +27,6 @@ impl Registers {
     pub(super) fn new() -> Self {
         Self {
             s: 0xfd,
-            p: Flags::STARTUP_STATE,
             ..Default::default()
         }
     }
@@ -96,9 +95,6 @@ bitflags! {
         /// for correctness, these bits must always be present, since
         /// the original CPU considers them to be always switched on.
         const ALWAYS_ON = Self::BREAK.bits | Self::UNUSED.bits;
-
-        /// Flags that are set when the CPU is powered on.
-        const STARTUP_STATE = Self::INTERRUPT_DISABLE.bits | Self::ALWAYS_ON.bits;
     }
 }
 

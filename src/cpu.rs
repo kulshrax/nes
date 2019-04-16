@@ -11,19 +11,19 @@
 //! these games will not work with this emulator, as this implementation
 //! treats unofficial opcodes as illegal instructions.)
 //!
-//! Many thanks to Andrew Jacobs, whose introductory guide on the MOS
+//! Many thanks to Andrew Jacobs, whose introductory guide to the MOS
 //! 6502 (http://www.obelisk.me.uk/6502/) was an invaluable resource
 //! for this implementation.
 
 use crate::mem::{Address, Memory};
 
-mod addressing;
-mod instruction;
-mod registers;
-
 use addressing::{Absolute, AddressingMode, Relative};
 use instruction::Instruction;
 use registers::{Flags, Registers};
+
+mod addressing;
+mod instruction;
+mod registers;
 
 /// The 6502 has a 256-byte stack address space that is fixed
 /// at memory page 1 (addresses 0x100 to 0x1FF). The stack

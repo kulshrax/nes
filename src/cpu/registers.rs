@@ -62,9 +62,9 @@ bitflags! {
 
         /// Specifies that the CPU should use binary coded decimal
         /// for arithmetic operations. This mode is disabled in the
-        /// Ricoh 2A03 CPU used by the NES, but this flag is included
-        /// here for completeness. (This allows us to use standard
-        /// 6502 test ROMs to verify that this implementation works.)
+        /// Ricoh 2A03 CPU used by the NES, so the flag does not
+        /// change the behavior of arithmetic operations. However,
+        /// the NES still supports getting and setting the flag.
         const DECIMAL = 1 << 3;
 
         /// Indicates that a BRK instruction has been executed

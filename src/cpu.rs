@@ -233,20 +233,35 @@ impl Cpu {
         }
     }
 
+    /// Get the current address of the next available memory
+    /// location on the call stack.
     fn stack(&self) -> Address {
         Address::from(STACK_START) + self.registers.s
     }
 
+    /// Push a value onto the call stack. Note that if the
+    /// stack pointer overflows, this will wrap around and
+    /// overwrite data at the start of the stack.
     fn push_stack(&mut self, memory: &mut Memory, value: u8) {
         memory.store(self.stack(), value);
         self.registers.s = self.registers.s.wrapping_sub(1);
     }
 
+    /// Pull ("pop" in more modern terms) a value from
+    /// the call stack. If the stack pointer underflows,
+    /// it will wrap around to the top of memory page 1,
+    /// potentially reading garbage.
     fn pull_stack(&mut self, memory: &mut Memory) -> u8 {
         self.registers.s = self.registers.s.wrapping_add(1);
         memory.load(self.stack())
     }
 
+    /// Check if the given value is zero or negative
+    /// and set the appropriate flags in the status
+    /// register. Note that since the value is unsigned,
+    /// the negative check is just checking if the sign
+    /// bit is set if the value were interpreted as a
+    /// two's complement signed integer.
     fn check_zero_or_negative(&mut self, value: u8) {
         self.registers.p.set(Flags::ZERO, value == 0);
         self.registers.p.set(Flags::NEGATIVE, value > 127);

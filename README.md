@@ -1,2 +1,2 @@
 # nes
-A toy NES emulator written in Rust
+A (work in progress) toy NES emulator written in Rust

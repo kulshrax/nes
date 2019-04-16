@@ -22,7 +22,8 @@ impl Nes {
         loop {
             let pc = self.cpu.step(&mut self.memory);
             if pc == old_pc {
-                log::info!("Detected infinite loop at {}; stopping CPU", pc);
+                log::error!("Detected infinite loop at {}; stopping CPU", pc);
+                log::error!("Registers: {}", self.cpu.dump_registers());
                 break;
             }
             old_pc = pc;

@@ -63,6 +63,10 @@ impl Cpu {
         self.registers.pc = pc;
     }
 
+    pub fn dump_registers(&self) -> String {
+        format!("{}", &self.registers)
+    }
+
     /// Fetch and execute a single instruction. Returns the
     /// post-operation value of the program counter.
     pub fn step(&mut self, memory: &mut Memory) -> Address {
@@ -276,19 +280,20 @@ impl Cpu {
     /// Add with carry.
     fn adc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &self.registers);
-        let carry_in = self.registers.p.contains(Flags::CARRY) as u8;
+        let carry_in = self.registers.p.contains(Flags::CARRY);
 
-        let (res, carry_out_1) = value.overflowing_add(self.registers.a);
-        let (res, carry_out_2) = res.overflowing_add(carry_in);
+        // Cast the values to u16's before adding so we can
+        // more easily check for overflow.
+        let res = self.registers.a as u16 + value as u16 + carry_in as u16;
+        let carry_out = res > 255;
+        let res = res as u8;
 
         let overflow = twos_complement_overflow(self.registers.a, value, res);
         self.registers.p.set(Flags::OVERFLOW, overflow);
 
         self.registers.a = res;
-        self.registers
-            .p
-            .set(Flags::CARRY, carry_out_1 || carry_out_2);
-        self.check_zero_or_negative(value);
+        self.registers.p.set(Flags::CARRY, carry_out);
+        self.check_zero_or_negative(res);
     }
 
     /// Logical AND.
@@ -430,6 +435,7 @@ impl Cpu {
     /// Compare.
     fn cmp(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &self.registers);
+        log::info!("A: {}, M: {}", self.registers.a, value);
         let (res, overflowed) = self.registers.a.overflowing_sub(value);
         self.registers.p.set(Flags::CARRY, !overflowed);
         self.check_zero_or_negative(res);
@@ -632,19 +638,20 @@ impl Cpu {
     /// Subtract with carry.
     fn sbc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
         let value = am.load(memory, &self.registers);
-        let carry_in = 1 - self.registers.p.contains(Flags::CARRY) as u8;
+        let carry_in = !self.registers.p.contains(Flags::CARRY);
 
-        let (res, carry_out_1) = value.overflowing_sub(self.registers.a);
-        let (res, carry_out_2) = res.overflowing_sub(carry_in);
+        // Cast the values to i16's before substracing so we can
+        // more easily check for underflow.
+        let res = self.registers.a as i16 - value as i16 - carry_in as i16;
+        let carry_out = res >= 0;
+        let res = res as u8;
 
-        let overflow = twos_complement_overflow(self.registers.a, value, res);
+        let overflow = twos_complement_overflow(self.registers.a, !value, res);
         self.registers.p.set(Flags::OVERFLOW, overflow);
 
         self.registers.a = res;
-        self.registers
-            .p
-            .set(Flags::CARRY, carry_out_1 || carry_out_2);
-        self.check_zero_or_negative(value);
+        self.registers.p.set(Flags::CARRY, carry_out);
+        self.check_zero_or_negative(res);
     }
 
     /// Set carry flag.

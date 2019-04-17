@@ -49,12 +49,14 @@ const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
 /// Emulated MOS 6502 CPU.
 pub struct Cpu {
     registers: Registers,
+    irq_pending: bool,
 }
 
 impl Cpu {
     pub fn new() -> Self {
         Self {
             registers: Registers::new(),
+            irq_pending: false,
         }
     }
 
@@ -74,6 +76,14 @@ impl Cpu {
     /// Fetch and execute a single instruction. Returns the
     /// post-operation value of the program counter.
     pub fn step(&mut self, memory: &mut Memory) -> Address {
+        // If there is a pending interrupt and interrupts
+        // are not disabled, service it immediately.
+        if self.irq_pending && !self.registers.p.contains(Flags::INTERRUPT_DISABLE) {
+            log::trace!("Handling pending IRQ");
+            self.irq_pending = false;
+            self.irq(memory);
+        }
+
         let op = Instruction::fetch(memory, &mut self.registers.pc);
         self.exec(memory, op);
         log::trace!("Registers: {}", &self.registers);
@@ -89,9 +99,16 @@ impl Cpu {
         self.registers.pc = Address::from([low, high]);
     }
 
-    /// Interupt request.
+    /// Interrupt request.
     pub fn irq(&mut self, memory: &mut Memory) {
-        self.interrupt(memory, &IRQ_VECTOR, false);
+        log::trace!("Received IRQ");
+        if self.registers.p.contains(Flags::INTERRUPT_DISABLE) {
+            log::trace!("Interrupts are disabled; IRQ will be handled when they are enabled");
+            self.irq_pending = true;
+        } else {
+            log::trace!("Handling IRQ");
+            self.interrupt(memory, &IRQ_VECTOR, false);
+        }
     }
 
     /// Non-maskable interrupt.

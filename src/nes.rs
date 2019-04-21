@@ -1,6 +1,7 @@
+use std::path::Path;
+
 use crate::cpu::Cpu;
 use crate::mem::{Address, Memory};
-use crate::rom::Rom;
 
 pub struct Nes {
     cpu: Cpu,
@@ -15,8 +16,8 @@ impl Nes {
         }
     }
 
-    pub fn run(&mut self, rom: &Rom, start: Address) {
-        self.memory.load_rom(rom);
+    pub fn run(&mut self, path: impl AsRef<Path>, start: Address) {
+        self.memory.load_file(path);
         self.cpu.set_init(&mut self.memory, start);
         self.cpu.reset(&mut self.memory);
         let mut old_pc = start;

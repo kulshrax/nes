@@ -14,7 +14,6 @@ mod rom;
 
 use crate::mem::Address;
 use crate::nes::Nes;
-use crate::rom::Rom;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nes", about = "A toy NES emulator")]
@@ -34,8 +33,7 @@ fn main() {
     }
 
     log::info!("Loading ROM: {:?}", &args.rom);
-    let rom = Rom::load(&args.rom).expect("Failed to load ROM");
 
     let mut nes = Nes::new();
-    nes.run(&rom, Address::from(0x400u16));
+    nes.run(&args.rom, Address::from(0x400u16));
 }

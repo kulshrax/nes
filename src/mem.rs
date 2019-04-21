@@ -1,6 +1,4 @@
-use std::cmp;
-
-use crate::rom::Rom;
+use std::{cmp, fs::File, io::prelude::*, path::Path};
 
 pub use address::Address;
 
@@ -16,9 +14,13 @@ impl Memory {
         Self { ram: [0; 0x10000] }
     }
 
-    pub fn load_rom(&mut self, rom: &Rom) {
-        let n = cmp::min(self.ram.len(), rom.0.len());
-        self.ram[..n].copy_from_slice(&rom.0[..n]);
+    pub fn load_file(&mut self, path: impl AsRef<Path>) {
+        let mut buf = Vec::new();
+        let mut f = File::open(path.as_ref()).unwrap();
+        let file_size = f.read_to_end(&mut buf).unwrap();
+
+        let n = cmp::min(self.ram.len(), file_size);
+        self.ram[..n].copy_from_slice(&buf[..n]);
     }
 
     pub fn load(&self, addr: Address) -> u8 {

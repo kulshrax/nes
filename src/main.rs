@@ -9,6 +9,7 @@ use structopt::StructOpt;
 mod cpu;
 mod mem;
 mod nes;
+mod ppu;
 mod rom;
 
 use crate::mem::Address;

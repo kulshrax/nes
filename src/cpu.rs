@@ -43,7 +43,7 @@ const STACK_START: u16 = 0x0100;
 /// corresponding to a different kind of interrupt. All of them
 /// stored in the highest bytes of the 16-bit address space.
 const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
-const INIT_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
+const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
 const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
 
 /// Emulated MOS 6502 CPU.
@@ -65,8 +65,8 @@ impl Cpu {
     /// reset to begin execution.
     pub fn set_init(&mut self, memory: &mut Memory, addr: Address) {
         let [low, high] = <[u8; 2]>::from(addr);
-        memory.store(Address::from(INIT_VECTOR[0]), low);
-        memory.store(Address::from(INIT_VECTOR[1]), high);
+        memory.store(Address::from(RESET_VECTOR[0]), low);
+        memory.store(Address::from(RESET_VECTOR[1]), high);
     }
 
     pub fn dump_registers(&self) -> String {
@@ -94,8 +94,8 @@ impl Cpu {
     /// location specified by the initialization vector.
     pub fn reset(&mut self, memory: &Memory) {
         self.registers.p.insert(Flags::INTERRUPT_DISABLE);
-        let low = memory.load(Address::from(INIT_VECTOR[0]));
-        let high = memory.load(Address::from(INIT_VECTOR[1]));
+        let low = memory.load(Address::from(RESET_VECTOR[0]));
+        let high = memory.load(Address::from(RESET_VECTOR[1]));
         self.registers.pc = Address::from([low, high]);
     }
 

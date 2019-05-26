@@ -69,8 +69,8 @@ impl Cpu {
         memory.store(Address::from(RESET_VECTOR[1]), high);
     }
 
-    pub fn dump_registers(&self) -> String {
-        format!("{}", &self.registers)
+    pub fn registers(&self) -> &Registers {
+        &self.registers
     }
 
     /// Fetch and execute a single instruction. Returns the

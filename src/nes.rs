@@ -17,7 +17,7 @@ impl Nes {
     }
 
     pub fn run(&mut self, path: impl AsRef<Path>, start: Address) {
-        self.memory.load_file(path);
+        self.memory.load_raw_binary(path);
         self.cpu.set_init(&mut self.memory, start);
         self.cpu.reset(&mut self.memory);
         let mut old_pc = start;
@@ -25,7 +25,7 @@ impl Nes {
             let pc = self.cpu.step(&mut self.memory);
             if pc == old_pc {
                 log::error!("Detected infinite loop at {}; stopping CPU", pc);
-                log::error!("Registers: {}", self.cpu.dump_registers());
+                log::error!("Registers: {}", self.cpu.registers());
                 break;
             }
             old_pc = pc;

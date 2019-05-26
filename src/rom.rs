@@ -7,13 +7,13 @@ use std::{
 
 use nom::*;
 
-const PRG_UNIT_LEN: usize = 16384; // 16 KiB
-const CHR_UNIT_LEN: usize = 8192; // 8 KiB
+const PRG_BANK_SIZE: usize = 16384; // 16 KiB
+const CHR_BANK_SIZE: usize = 8192; // 8 KiB
 
 #[derive(Debug)]
 pub struct Rom {
-    prg: Vec<u8>,
-    chr: Vec<u8>,
+    pub prg: Vec<u8>,
+    pub chr: Vec<u8>,
 }
 
 impl Rom {
@@ -36,8 +36,8 @@ named!(rom<&[u8], Rom>,
         prg_len: le_u8 >>
         chr_len: le_u8 >>
         take!(10) >>
-        prg_data: take!(prg_len as usize * PRG_UNIT_LEN) >>
-        chr_data: take!(chr_len as usize * CHR_UNIT_LEN) >>
+        prg_data: take!(prg_len as usize * PRG_BANK_SIZE) >>
+        chr_data: take!(chr_len as usize * CHR_BANK_SIZE) >>
         (Rom {
             prg: prg_data.to_vec(),
             chr: chr_data.to_vec(),
@@ -50,7 +50,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() -> io::Result<()> {
+    fn load() -> io::Result<()> {
         let _ = Rom::load("test/nestest.nes")?;
         Ok(())
     }

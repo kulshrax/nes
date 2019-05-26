@@ -5,7 +5,7 @@ use bitflags::bitflags;
 use crate::mem::Address;
 
 #[derive(Default)]
-pub(super) struct Registers {
+pub struct Registers {
     // Accumulator.
     pub(super) a: u8,
 

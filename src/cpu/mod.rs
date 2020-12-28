@@ -1,19 +1,19 @@
 //! An emulated MOS 6502 CPU.
 //!
 //! The NES uses an 8-bit Ricoh 2A03 CPU running at 1.79 MHz (for the NTSC
-//! version of the console). The chip includes a CPU core based on the MOS
-//! 6502 CPU (modified to disable decimal mode) along with an audio
-//! processing unit (APU) for audio generation.
+//! version of the console). The chip includes a CPU core based on the MOS 6502
+//! CPU (modified to disable decimal mode) along with an audio processing unit
+//! (APU) for audio generation.
 //!
-//! This module implements an emulator for the MOS 6502, supporting all
-//! of the official opcodes in the CPU's instruction set. (Some NES games
-//! rely on unofficial opcodes outside of the documented instruction set;
-//! these games will not work with this emulator, as this implementation
-//! treats unofficial opcodes as illegal instructions.)
+//! This module implements an emulator for the MOS 6502, supporting all of the
+//! official opcodes in the CPU's instruction set. (Some NES games rely on
+//! unofficial opcodes outside of the documented instruction set; these games
+//! will not work with this emulator, as this implementation treats unofficial
+//! opcodes as illegal instructions.)
 //!
-//! Many thanks to Andrew Jacobs, whose introductory guide to the MOS
-//! 6502 (http://www.obelisk.me.uk/6502/) was an invaluable resource
-//! for this implementation.
+//! Many thanks to Andrew Jacobs, whose introductory guide to the MOS 6502
+//! (http://www.obelisk.me.uk/6502/) was an invaluable resource for this
+//! implementation.
 
 use crate::mem::{Address, Memory};
 
@@ -25,23 +25,20 @@ mod addressing;
 mod instruction;
 mod registers;
 
-/// The 6502 has a 256-byte stack address space that is fixed
-/// at memory page 1 (addresses 0x100 to 0x1FF). The stack
-/// starts at 0x1FF and grows downward as values are pushed.
-/// The next free location on the stack is pointed at by the
-/// S register, which contains the low byte of the next
-/// available stack address. There is no overflow checking
-/// for the call stack.
+/// The 6502 has a 256-byte stack address space that is fixed at memory page 1
+/// (addresses 0x100 to 0x1FF). The stack starts at 0x1FF and grows downward as
+/// values are pushed. The next free location on the stack is pointed at by the
+/// S register, which contains the low byte of the next available stack address.
+/// There is no overflow checking for the call stack.
 const STACK_START: u16 = 0x0100;
 
-/// When the CPU receives an interrupt, it loads an address
-/// from a fixed memory location (known as an interrupt vector)
-/// and sets the program counter to that address. This allows the
-/// program to specify interrupt handlers by writing the address
-/// of the start of the handler code to the appropriate interrupt
-/// vector location. There are several interrupt vectors, each
-/// corresponding to a different kind of interrupt. All of them
-/// stored in the highest bytes of the 16-bit address space.
+/// When the CPU receives an interrupt, it loads an address from a fixed memory
+/// location (known as an interrupt vector) and sets the program counter to that
+/// address. This allows the program to specify interrupt handlers by writing
+/// the address of the start of the handler code to the appropriate interrupt
+/// vector location. There are several interrupt vectors, each corresponding to
+/// a different kind of interrupt. All of them stored in the highest bytes of
+/// the 16-bit address space.
 const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
 const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
 const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
@@ -60,9 +57,8 @@ impl Cpu {
         }
     }
 
-    /// Manually set the address stored in the CPU's initialization
-    /// vector. The CPU will jump to this address on startup or
-    /// reset to begin execution.
+    /// Manually set the address stored in the CPU's initialization vector. The
+    /// CPU will jump to this address on startup or reset to begin execution.
     pub fn set_init(&mut self, memory: &mut Memory, addr: Address) {
         let [low, high] = <[u8; 2]>::from(addr);
         memory.store(Address::from(RESET_VECTOR[0]), low);
@@ -73,11 +69,11 @@ impl Cpu {
         &self.registers
     }
 
-    /// Fetch and execute a single instruction. Returns the
-    /// post-operation value of the program counter.
+    /// Fetch and execute a single instruction. Returns the post-operation value
+    /// of the program counter.
     pub fn step(&mut self, memory: &mut Memory) -> Address {
-        // If there is a pending interrupt and interrupts
-        // are not disabled, service it immediately.
+        // If there is a pending interrupt and interrupts are not disabled,
+        // service it immediately.
         if self.irq_pending && !self.registers.p.contains(Flags::INTERRUPT_DISABLE) {
             log::trace!("Handling pending IRQ");
             self.irq_pending = false;
@@ -90,8 +86,8 @@ impl Cpu {
         self.registers.pc
     }
 
-    /// Reset the CPU by disabling interrupts and jumping to the
-    /// location specified by the initialization vector.
+    /// Reset the CPU by disabling interrupts and jumping to the location
+    /// specified by the initialization vector.
     pub fn reset(&mut self, memory: &Memory) {
         self.registers.p.insert(Flags::INTERRUPT_DISABLE);
         let low = memory.load(Address::from(RESET_VECTOR[0]));
@@ -274,67 +270,62 @@ impl Cpu {
         }
     }
 
-    /// Cause the CPU to stop the normal execution flow and begin
-    /// executing an interrupt handler. The interrupt handler that
-    /// is executed is determined from by the address stored at the
-    /// location specified by the given interrupt vector. The brk
-    /// parameter allows specifying whether this was a software or
-    /// hardware interrupt.
+    /// Cause the CPU to stop the normal execution flow and begin executing an
+    /// interrupt handler. The interrupt handler that is executed is determined
+    /// from by the address stored at the location specified by the given
+    /// interrupt vector. The brk parameter allows specifying whether this was a
+    /// software or hardware interrupt.
     fn interrupt(&mut self, memory: &mut Memory, vector: &[u16; 2], brk: bool) {
         // Push program counter to stack.
         let [low, high] = <[u8; 2]>::from(self.registers.pc + 1u8);
         self.push_stack(memory, high);
         self.push_stack(memory, low);
 
-        // Push flags to stack. Set the BRK flag in the pushed byte
-        // appropriately. In particular, if this interrupt was
-        // triggered by a BRK instruction, then the BRK bit should
-        // be 1 in the pushed value; if the interrupt was triggered
-        // by a hardware interrupt, it should be set to 0.
+        // Push flags to stack and set the BRK flag in the pushed byte. In
+        // particular, if this interrupt was triggered by a BRK instruction,
+        // then the BRK bit should be 1 in the pushed value; if the interrupt
+        // was triggered by a hardware interrupt, it should be set to 0.
         let mut flags = self.registers.p;
         flags.set(Flags::BREAK, brk);
         self.push_stack(memory, flags.bits());
 
-        // Disable interrupts so that the interrupt handler
-        // is not itself interrupted.
+        // Disable interrupts so that the interrupt handler is not itself
+        // interrupted.
         self.registers.p.insert(Flags::INTERRUPT_DISABLE);
 
-        // Load the interrupt handler address from a fixed
-        // location in memory, then jump to that address.
+        // Load the interrupt handler address from a fixed location in memory,
+        // then jump to that address.
         let low = memory.load(Address::from(vector[0]));
         let high = memory.load(Address::from(vector[1]));
         self.registers.pc = Address::from([low, high]);
     }
 
-    /// Get the current address of the next available memory
-    /// location on the call stack.
+    /// Get the current address of the next available memory location on the
+    /// call stack.
     fn stack(&self) -> Address {
         Address::from(STACK_START) + self.registers.s
     }
 
-    /// Push a value onto the call stack. Note that if the
-    /// stack pointer overflows, this will wrap around and
-    /// overwrite data at the start of the stack.
+    /// Push a value onto the call stack. Note that if the stack pointer
+    /// overflows, this will wrap around and overwrite data at the start of the
+    /// stack.
     fn push_stack(&mut self, memory: &mut Memory, value: u8) {
         memory.store(self.stack(), value);
         self.registers.s = self.registers.s.wrapping_sub(1);
     }
 
-    /// Pull ("pop" in more modern terms) a value from
-    /// the call stack. If the stack pointer underflows,
-    /// it will wrap around to the top of memory page 1,
-    /// potentially reading garbage.
+    /// Pull ("pop" in more modern terms) a value from the call stack. If the
+    /// stack pointer underflows, it will wrap around to the top of memory page
+    /// 1, potentially reading garbage.
     fn pull_stack(&mut self, memory: &mut Memory) -> u8 {
         self.registers.s = self.registers.s.wrapping_add(1);
         memory.load(self.stack())
     }
 
-    /// Check if the given value is zero or negative
-    /// and set the appropriate flags in the status
-    /// register. Note that since the value is unsigned,
-    /// the negative check is just checking if the sign
-    /// bit is set if the value were interpreted as a
-    /// two's complement signed integer.
+    /// Check if the given value is zero or negative and set the appropriate
+    /// flags in the status register. Note that since the value is unsigned, the
+    /// negative check is just checking if the sign bit is set if the value were
+    /// interpreted as a two's complement signed integer.
     fn check_zero_or_negative(&mut self, value: u8) {
         self.registers.p.set(Flags::ZERO, value == 0);
         self.registers.p.set(Flags::NEGATIVE, value > 127);
@@ -343,8 +334,8 @@ impl Cpu {
 
 /// Methods corresponding to operations in the MOS 6502 instruction set.
 ///
-/// See http://obelisk.me.uk/6502/reference.html for details about
-/// each instruction.
+/// See http://obelisk.me.uk/6502/reference.html for details about each
+/// instruction.
 impl Cpu {
     /// Add with carry.
     fn adc(&mut self, am: impl AddressingMode, memory: &mut Memory) {
@@ -777,9 +768,9 @@ impl Cpu {
     }
 }
 
-/// Check for two's complement overflow during addition or subtraction
-/// by checking whether the sign bit of each operand matches that of the
-/// result. See the folowing webpage for a more detailed explanation:
+/// Check for two's complement overflow during addition or subtraction by
+/// checking whether the sign bit of each operand matches that of the result.
+/// See the folowing webpage for a more detailed explanation:
 /// http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 #[inline]
 fn twos_complement_overflow(n: u8, m: u8, res: u8) -> bool {

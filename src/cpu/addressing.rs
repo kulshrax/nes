@@ -30,6 +30,7 @@ pub(super) trait AddressingMode {
 /// or store a value directly to/from the A register.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Accumulator;
+
 impl AddressingMode for Accumulator {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Cannot take address of accumulator");
@@ -49,6 +50,7 @@ impl AddressingMode for Accumulator {
 /// use the immediate value. Stores do not make sense in this mode.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Immediate(pub(super) u8);
+
 impl AddressingMode for Immediate {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         panic!("Cannot take address of immediate value");
@@ -68,6 +70,7 @@ impl AddressingMode for Immediate {
 /// to execute (since fewer memory fetches are required during execution).
 #[derive(Copy, Clone, Debug)]
 pub(super) struct ZeroPage(pub(super) u8);
+
 impl AddressingMode for ZeroPage {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         Address::from(self.0)
@@ -80,6 +83,7 @@ impl AddressingMode for ZeroPage {
 /// page address, which is then used to load/store the given value.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct ZeroPageX(pub(super) u8);
+
 impl AddressingMode for ZeroPageX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         Address::from(registers.x.wrapping_add(self.0))
@@ -92,6 +96,7 @@ impl AddressingMode for ZeroPageX {
 /// page address, which is then used to load/store the given value.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct ZeroPageY(pub(super) u8);
+
 impl AddressingMode for ZeroPageY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         Address::from(registers.y.wrapping_add(self.0))
@@ -106,6 +111,7 @@ impl AddressingMode for ZeroPageY {
 /// address will be (program counter + operand + 2).
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Relative(pub(super) i8);
+
 impl AddressingMode for Relative {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         registers.pc + self.0
@@ -116,6 +122,7 @@ impl AddressingMode for Relative {
 /// of the exact 16-bit address of the target value.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Absolute(pub(super) Address);
+
 impl AddressingMode for Absolute {
     fn address(&self, _memory: &Memory, _registers: &Registers) -> Address {
         self.0
@@ -127,6 +134,7 @@ impl AddressingMode for Absolute {
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct AbsoluteX(pub(super) Address);
+
 impl AddressingMode for AbsoluteX {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         self.0 + registers.x
@@ -138,6 +146,7 @@ impl AddressingMode for AbsoluteX {
 /// offset) to compute the target memory location.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct AbsoluteY(pub(super) Address);
+
 impl AddressingMode for AbsoluteY {
     fn address(&self, _memory: &Memory, registers: &Registers) -> Address {
         self.0 + registers.y
@@ -150,6 +159,7 @@ impl AddressingMode for AbsoluteY {
 /// which is then used as the target location for the operation.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Indirect(pub(super) Address);
+
 impl AddressingMode for Indirect {
     fn address(&self, memory: &Memory, _registers: &Registers) -> Address {
         let low = memory.load(self.0);
@@ -167,6 +177,7 @@ impl AddressingMode for Indirect {
 /// which is then used as the target address for the operation.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct IndexedIndirect(pub(super) u8);
+
 impl AddressingMode for IndexedIndirect {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
         let low_addr = Address::from(self.0.wrapping_add(registers.x));
@@ -185,6 +196,7 @@ impl AddressingMode for IndexedIndirect {
 /// is added to this address to determine the target location.
 #[derive(Copy, Clone, Debug)]
 pub(super) struct IndirectIndexed(pub(super) u8);
+
 impl AddressingMode for IndirectIndexed {
     fn address(&self, memory: &Memory, registers: &Registers) -> Address {
         let low_addr = Address::from(self.0);

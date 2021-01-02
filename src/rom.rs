@@ -1,4 +1,3 @@
-/// Parser for the iNES ROM format.
 use std::{fs::File, io::prelude::*, path::Path};
 
 use anyhow::Result;
@@ -11,6 +10,7 @@ use nom::{
 const PRG_BANK_SIZE: usize = 16384; // 16 KiB
 const CHR_BANK_SIZE: usize = 8192; // 8 KiB
 
+/// The contents of an iNES-format ROM file.
 #[derive(Debug)]
 pub struct Rom {
     pub prg: Vec<u8>,

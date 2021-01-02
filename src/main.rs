@@ -2,6 +2,7 @@
 
 use std::{path::PathBuf, process::exit};
 
+use anyhow::Result;
 use env_logger;
 use log;
 use structopt::StructOpt;
@@ -23,7 +24,7 @@ struct Args {
     rom: PathBuf,
 }
 
-fn main() {
+fn main() -> Result<()> {
     env_logger::init();
     let args = Args::from_args();
 
@@ -35,5 +36,7 @@ fn main() {
     log::info!("Loading ROM: {:?}", &args.rom);
 
     let mut nes = Nes::new();
-    nes.run(&args.rom, Address::from(0x400u16));
+    nes.run(&args.rom, Address::from(0x400u16))?;
+
+    Ok(())
 }

@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use log;
 
 use crate::mem::{Address, Memory};
@@ -276,7 +277,7 @@ impl Instruction {
     /// long: a 1-byte opcode optionally followed by a one or two byte
     /// argument. This method will increment the program counter by
     /// the appropriate amount after decoding the instruction.
-    pub(super) fn fetch(memory: &Memory, pc: &mut Address) -> Self {
+    pub(super) fn fetch(memory: &Memory, pc: &mut Address) -> Result<Self> {
         use Instruction::*;
 
         let start_pc = *pc;
@@ -435,7 +436,7 @@ impl Instruction {
             0x8A => Txa,
             0x9A => Txs,
             0x98 => Tya,
-            illegal => panic!("Illegal opcode: {:#X}", illegal),
+            illegal => bail!("Illegal opcode at address {}: {:#X}", start_pc, illegal),
         };
 
         log::trace!(
@@ -444,7 +445,8 @@ impl Instruction {
             opcode,
             instruction
         );
-        instruction
+
+        Ok(instruction)
     }
 }
 

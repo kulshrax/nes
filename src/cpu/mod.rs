@@ -15,6 +15,8 @@
 //! (http://www.obelisk.me.uk/6502/) was an invaluable resource for this
 //! implementation.
 
+use anyhow::Result;
+
 use crate::mem::{Address, Memory};
 
 use addressing::{Absolute, AddressingMode, Relative};
@@ -71,7 +73,7 @@ impl Cpu {
 
     /// Fetch and execute a single instruction. Returns the post-operation value
     /// of the program counter.
-    pub fn step(&mut self, memory: &mut Memory) -> Address {
+    pub fn step(&mut self, memory: &mut Memory) -> Result<Address> {
         // If there is a pending interrupt and interrupts are not disabled,
         // service it immediately.
         if self.irq_pending && !self.registers.p.contains(Flags::INTERRUPT_DISABLE) {
@@ -80,10 +82,11 @@ impl Cpu {
             self.irq(memory);
         }
 
-        let op = Instruction::fetch(memory, &mut self.registers.pc);
+        let op = Instruction::fetch(memory, &mut self.registers.pc)?;
         self.exec(memory, op);
         log::trace!("Registers: {}", &self.registers);
-        self.registers.pc
+
+        Ok(self.registers.pc)
     }
 
     /// Reset the CPU by disabling interrupts and jumping to the location

@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use anyhow::Result;
+
 use crate::cpu::Cpu;
 use crate::mem::{Address, Memory};
 
@@ -16,13 +18,14 @@ impl Nes {
         }
     }
 
-    pub fn run(&mut self, path: impl AsRef<Path>, start: Address) {
+    pub fn run(&mut self, path: impl AsRef<Path>, start: Address) -> Result<()> {
         self.memory.load_raw_binary(path);
         self.cpu.set_init(&mut self.memory, start);
         self.cpu.reset(&mut self.memory);
+
         let mut old_pc = start;
         loop {
-            let pc = self.cpu.step(&mut self.memory);
+            let pc = self.cpu.step(&mut self.memory)?;
             if pc == old_pc {
                 log::error!("Detected infinite loop at {}; stopping CPU", pc);
                 log::error!("Registers: {}", self.cpu.registers());
@@ -30,5 +33,7 @@ impl Nes {
             }
             old_pc = pc;
         }
+
+        Ok(())
     }
 }

@@ -37,22 +37,21 @@ impl Rom {
     }
 }
 
-/// Identify and return slices containing the ROM file's PRG and CHR sections.
+/// Identify and return slices containing the ROM file's PRG and CHR banks.
 fn parse_rom(bytes: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     // Initial 4 byte magic sequence.
     let (bytes, _) = tag(b"NES\x1A")(bytes.as_ref())?;
 
-    // Length of PRG and CHR sections, specified as a multiple of the
-    // appropriate bank size.
-    let (bytes, prg_len) = le_u8(bytes)?;
-    let (bytes, chr_len) = le_u8(bytes)?;
+    // Number of PRG (program) and CHR (character) banks.
+    let (bytes, prg_banks) = le_u8(bytes)?;
+    let (bytes, chr_banks) = le_u8(bytes)?;
 
-    // Garbag
+    // Other fields we don't care about yet.
     let (bytes, _) = take(10usize)(bytes)?;
 
-    // Actual PRG and CHR data from the input.
-    let (bytes, prg_data) = take(prg_len as usize * PRG_BANK_SIZE)(bytes)?;
-    let (bytes, chr_data) = take(chr_len as usize * CHR_BANK_SIZE)(bytes)?;
+    // Actual PRG and CHR bank data.
+    let (bytes, prg_data) = take(prg_banks as usize * PRG_BANK_SIZE)(bytes)?;
+    let (bytes, chr_data) = take(chr_banks as usize * CHR_BANK_SIZE)(bytes)?;
 
     Ok((bytes, (prg_data, chr_data)))
 }

@@ -20,20 +20,11 @@ impl Nes {
 
     pub fn run(&mut self, path: impl AsRef<Path>, start: Address) -> Result<()> {
         self.memory.load_raw_binary(path);
-        self.cpu.set_init(&mut self.memory, start);
+        self.cpu.set_reset_vector(&mut self.memory, start);
         self.cpu.reset(&mut self.memory);
 
-        let mut old_pc = start;
         loop {
-            let pc = self.cpu.step(&mut self.memory)?;
-            if pc == old_pc {
-                log::error!("Detected infinite loop at {}; stopping CPU", pc);
-                log::error!("Registers: {}", self.cpu.registers());
-                break;
-            }
-            old_pc = pc;
+            self.cpu.step(&mut self.memory)?;
         }
-
-        Ok(())
     }
 }

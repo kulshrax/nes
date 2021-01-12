@@ -15,7 +15,7 @@
 //! (http://www.obelisk.me.uk/6502/) was an invaluable resource for this
 //! implementation.
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use crate::mem::{Address, Memory};
 
@@ -59,9 +59,9 @@ impl Cpu {
         }
     }
 
-    /// Manually set the address stored in the CPU's initialization vector. The
-    /// CPU will jump to this address on startup or reset to begin execution.
-    pub fn set_init(&mut self, memory: &mut Memory, addr: Address) {
+    /// Manually set the address stored in the CPU's reset vector. Program
+    /// execution will begin from this address on CPU startup or reset.
+    pub fn set_reset_vector(&mut self, memory: &mut Memory, addr: Address) {
         let [low, high] = <[u8; 2]>::from(addr);
         memory.store(Address::from(RESET_VECTOR[0]), low);
         memory.store(Address::from(RESET_VECTOR[1]), high);
@@ -71,9 +71,12 @@ impl Cpu {
         &self.registers
     }
 
-    /// Fetch and execute a single instruction. Returns the post-operation value
-    /// of the program counter.
-    pub fn step(&mut self, memory: &mut Memory) -> Result<Address> {
+    /// Fetch and execute a single instruction. Returns the the number of clock
+    /// cycles taken to execute the instruction.
+    pub fn step(&mut self, memory: &mut Memory) -> Result<usize> {
+        // Save starting program counter.
+        let pc = self.registers.pc;
+
         // If there is a pending interrupt and interrupts are not disabled,
         // service it immediately.
         if self.irq_pending && !self.registers.p.contains(Flags::INTERRUPT_DISABLE) {
@@ -86,7 +89,18 @@ impl Cpu {
         self.exec(memory, op);
         log::trace!("Registers: {}", &self.registers);
 
-        Ok(self.registers.pc)
+        // Crash if we detect an infinite loop. This is useful for test ROMs
+        // that intentionally enter an infinite loop to signal a test failure.
+        if pc == self.registers.pc {
+            bail!(
+                "Detected infinite loop at {}; Registers: {}",
+                pc,
+                self.registers
+            );
+        }
+
+        // TODO: Return the actual number of clock cycles for this instruction.
+        Ok(1)
     }
 
     /// Reset the CPU by disabling interrupts and jumping to the location

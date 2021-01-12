@@ -26,8 +26,8 @@ impl Memory {
     }
 
     pub fn load_rom(&mut self, rom: Rom) {
-        let n = cmp::min(16384 * 2, rom.prg.len());
-        self.ram[0x8000..n].copy_from_slice(&rom.prg[..n]);
+        let n = cmp::min(16384 * 2, rom.prg_data.len());
+        self.ram[0x8000..n].copy_from_slice(&rom.prg_data[..n]);
     }
 
     pub fn load(&self, addr: Address) -> u8 {

@@ -13,8 +13,10 @@ const CHR_BANK_SIZE: usize = 8192; // 8 KiB
 /// The contents of an iNES-format ROM file.
 #[derive(Debug)]
 pub struct Rom {
-    pub prg: Vec<u8>,
-    pub chr: Vec<u8>,
+    pub prg_count: usize,
+    pub chr_count: usize,
+    pub prg_data: Vec<u8>,
+    pub chr_data: Vec<u8>,
 }
 
 impl Rom {
@@ -28,32 +30,39 @@ impl Rom {
         // owned string) is non-trivial. Rather than dealing with this, just
         // panic if we can't parse the ROM (since we'd want to exit the program
         // anyway if we can't load the input).
-        let (_, (prg, chr)) = parse_rom(&buf).expect("Failed to parse ROM file");
+        let (_, rom) = parse_rom(&buf).expect("Failed to parse ROM file");
 
-        Ok(Rom {
-            prg: prg.to_vec(),
-            chr: chr.to_vec(),
-        })
+        Ok(rom)
     }
 }
 
-/// Identify and return slices containing the ROM file's PRG and CHR banks.
-fn parse_rom(bytes: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
+/// Parse a the content of an iNES-format ROM file.
+fn parse_rom(bytes: &[u8]) -> IResult<&[u8], Rom> {
     // Initial 4 byte magic sequence.
     let (bytes, _) = tag(b"NES\x1A")(bytes.as_ref())?;
 
     // Number of PRG (program) and CHR (character) banks.
-    let (bytes, prg_banks) = le_u8(bytes)?;
-    let (bytes, chr_banks) = le_u8(bytes)?;
+    let (bytes, prg_count) = le_u8(bytes)?;
+    let prg_count = prg_count as usize;
+
+    let (bytes, chr_count) = le_u8(bytes)?;
+    let chr_count = chr_count as usize;
 
     // Other fields we don't care about yet.
     let (bytes, _) = take(10usize)(bytes)?;
 
     // Actual PRG and CHR bank data.
-    let (bytes, prg_data) = take(prg_banks as usize * PRG_BANK_SIZE)(bytes)?;
-    let (bytes, chr_data) = take(chr_banks as usize * CHR_BANK_SIZE)(bytes)?;
+    let (bytes, prg_data) = take(prg_count * PRG_BANK_SIZE)(bytes)?;
+    let (bytes, chr_data) = take(chr_count * CHR_BANK_SIZE)(bytes)?;
 
-    Ok((bytes, (prg_data, chr_data)))
+    let rom = Rom {
+        prg_count,
+        chr_count,
+        prg_data: prg_data.to_vec(),
+        chr_data: chr_data.to_vec(),
+    };
+
+    Ok((bytes, rom))
 }
 
 #[cfg(test)]

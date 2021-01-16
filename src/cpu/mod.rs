@@ -65,13 +65,19 @@ impl Cpu {
     /// This is primarily here to allow testing the  CPU independently from the
     /// rest of the emulator, and is not used for running actual NES ROMs.
     ///
+    /// If no start address is specified, execution will begin from the address
+    /// specified in the reset vector contained in the binary itself.
+    ///
     /// This function does not return.
-    pub fn run(&mut self, binary: &[u8], start: Address) -> Result<()> {
+    pub fn run(&mut self, binary: &[u8], start: Option<Address>) -> Result<()> {
         // Copy the binary into a 16-bit address space.
         let mut memory = Memory::from(binary);
 
-        // Overwrite reset vector with desired start address and begin running.
-        self.set_reset_vector(&mut memory, start);
+        // Overwrite reset vector with desired start address if specified.
+        if let Some(start) = start {
+            self.set_reset_vector(&mut memory, start);
+        }
+        
         self.reset(&mut memory);
         loop {
             self.step(&mut memory)?;

@@ -78,7 +78,7 @@ impl FromStr for Address {
             // Parse as decimal.
             None => addr
                 .parse()
-                .with_context(|| format!("Invalid decimal address: {:?}", addr))?,
+                .with_context(|| format!("Invalid address: {:?}", addr))?,
         }))
     }
 }

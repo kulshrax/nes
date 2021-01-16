@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::prelude::*,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::exit,
 };
 
@@ -22,30 +22,32 @@ use crate::mem::Address;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nes", about = "A toy NES emulator")]
 struct Args {
-    /// NES ROM file to load
+    /// Raw 6502 binary to load.
     #[structopt(parse(from_os_str))]
-    rom: PathBuf,
+    binary: PathBuf,
+    /// Address from which to start execution.
+    start: Option<Address>,
+
 }
 
 fn main() -> Result<()> {
     env_logger::init();
     let args = Args::from_args();
 
-    if !args.rom.is_file() {
-        eprintln!("{:?} is not a file", &args.rom);
+    if !args.binary.is_file() {
+        eprintln!("{:?} is not a file", &args.binary);
         exit(1);
     }
 
-    log::info!("Loading ROM: {:?}", &args.rom);
-
-    run_raw_binary(&args.rom, Address::from(0x400u16))
+    log::info!("Loading file: {:?}", &args.binary);
+    run_raw_binary(&args)
 }
 
-fn run_raw_binary(path: impl AsRef<Path>, start: Address) -> Result<()> {
+fn run_raw_binary(args: &Args) -> Result<()> {
     let mut binary = Vec::new();
-    let mut file = File::open(path)?;
+    let mut file = File::open(&args.binary)?;
     let _ = file.read_to_end(&mut binary)?;
 
     let mut cpu = Cpu::new();
-    cpu.run(&binary, start)
+    cpu.run(&binary, args.start)
 }

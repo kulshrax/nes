@@ -1,6 +1,6 @@
 use std::{fs::File, io::prelude::*, path::Path};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use nom::{
     bytes::complete::{tag, take},
     number::complete::le_u8,
@@ -25,12 +25,7 @@ impl Rom {
         let mut f = File::open(path.as_ref())?;
         f.read_to_end(&mut buf)?;
 
-        // XXX: Nom's error types are a bit complicated and contain references.
-        // Converting to an owned representation (even just converting to an
-        // owned string) is non-trivial. Rather than dealing with this, just
-        // panic if we can't parse the ROM (since we'd want to exit the program
-        // anyway if we can't load the input).
-        let (_, rom) = parse_rom(&buf).expect("Failed to parse ROM file");
+        let (_, rom) = parse_rom(&buf).map_err(|_| anyhow!("Failed to parse ROM file"))?;
 
         Ok(rom)
     }

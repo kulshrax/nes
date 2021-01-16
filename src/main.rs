@@ -1,6 +1,9 @@
-#![allow(dead_code)]
-
-use std::{path::PathBuf, process::exit};
+use std::{
+    fs::File,
+    io::prelude::*,
+    path::{Path, PathBuf},
+    process::exit,
+};
 
 use anyhow::Result;
 use env_logger;
@@ -9,12 +12,12 @@ use structopt::StructOpt;
 
 mod cpu;
 mod mem;
-mod nes;
-mod ppu;
-mod rom;
+// mod nes;
+// mod ppu;
+// mod rom;
 
+use crate::cpu::Cpu;
 use crate::mem::Address;
-use crate::nes::Nes;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nes", about = "A toy NES emulator")]
@@ -35,8 +38,14 @@ fn main() -> Result<()> {
 
     log::info!("Loading ROM: {:?}", &args.rom);
 
-    let mut nes = Nes::new();
-    nes.run(&args.rom, Address::from(0x400u16))?;
+    run_raw_binary(&args.rom, Address::from(0x400u16))
+}
 
-    Ok(())
+fn run_raw_binary(path: impl AsRef<Path>, start: Address) -> Result<()> {
+    let mut binary = Vec::new();
+    let mut file = File::open(path)?;
+    let _ = file.read_to_end(&mut binary)?;
+
+    let mut cpu = Cpu::new();
+    cpu.run(&binary, start)
 }

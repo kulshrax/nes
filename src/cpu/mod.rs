@@ -41,6 +41,7 @@ const STACK_START: u16 = 0x0100;
 /// vector location. There are several interrupt vectors, each corresponding to
 /// a different kind of interrupt. All of them stored in the highest bytes of
 /// the 16-bit address space.
+#[allow(dead_code)]
 const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
 const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
 const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
@@ -59,6 +60,24 @@ impl Cpu {
         }
     }
 
+    /// Execute a raw 6502 binary, starting from the specified address.
+    ///
+    /// This is primarily here to allow testing the  CPU independently from the
+    /// rest of the emulator, and is not used for running actual NES ROMs.
+    ///
+    /// This function does not return.
+    pub fn run(&mut self, binary: &[u8], start: Address) -> Result<()> {
+        // Copy the binary into a 16-bit address space.
+        let mut memory = Memory::from(binary);
+
+        // Overwrite reset vector with desired start address and begin running.
+        self.set_reset_vector(&mut memory, start);
+        self.reset(&mut memory);
+        loop {
+            self.step(&mut memory)?;
+        }
+    }
+
     /// Manually set the address stored in the CPU's reset vector. Program
     /// execution will begin from this address on CPU startup or reset.
     pub fn set_reset_vector(&mut self, memory: &mut Memory, addr: Address) {
@@ -67,6 +86,8 @@ impl Cpu {
         memory.store(Address::from(RESET_VECTOR[1]), high);
     }
 
+    /// Examine the current state of the CPU's registers.
+    #[allow(dead_code)]
     pub fn registers(&self) -> &Registers {
         &self.registers
     }
@@ -125,6 +146,7 @@ impl Cpu {
     }
 
     /// Non-maskable interrupt.
+    #[allow(dead_code)]
     pub fn nmi(&mut self, memory: &mut Memory) {
         self.interrupt(memory, &NMI_VECTOR, false);
     }

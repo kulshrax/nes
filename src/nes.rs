@@ -15,7 +15,7 @@ impl Nes {
         Self {
             cpu: Cpu::new(),
             ppu: Ppu::new(),
-            rom
+            rom,
         }
     }
 

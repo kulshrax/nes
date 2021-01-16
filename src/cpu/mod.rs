@@ -77,7 +77,7 @@ impl Cpu {
         if let Some(start) = start {
             self.set_reset_vector(&mut memory, start);
         }
-        
+
         self.reset(&mut memory);
         loop {
             self.step(&mut memory)?;

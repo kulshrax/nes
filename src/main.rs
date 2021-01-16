@@ -7,12 +7,14 @@ use structopt::StructOpt;
 
 mod cpu;
 mod mem;
-// mod nes;
-// mod ppu;
-// mod rom;
+mod nes;
+mod ppu;
+mod rom;
 
 use crate::cpu::Cpu;
 use crate::mem::Address;
+use crate::nes::Nes;
+use crate::rom::Rom;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nes", about = "A toy NES emulator")]
@@ -47,7 +49,9 @@ fn main() -> Result<()> {
 
 fn cmd_run(args: RunArgs) -> Result<()> {
     log::info!("Loading ROM: {:?}", &args.rom);
-    Ok(())
+    let rom = Rom::load(&args.rom)?;
+    let nes = Nes::new(rom);
+    nes.start()
 }
 
 fn cmd_run_raw(args: RunRawArgs) -> Result<()> {

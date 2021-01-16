@@ -1,19 +1,13 @@
-struct Ppu {}
-
-impl Ppu {
-    fn new() -> Self {
-        Self {}
-    }
+pub struct Ppu {
+    ram: [u8; 2048],
+    oam: [u8; 256],
 }
 
-struct Registers {
-    ctrl: u8,
-    mask: u8,
-    status: u8,
-    oam_addr: u8,
-    oam_data: u8,
-    scroll: u8,
-    addr: u8,
-    data: u8,
-    oam_dma: u8,
+impl Ppu {
+    pub fn new() -> Self {
+        Self {
+            ram: [0u8; 2048],
+            oam: [0u8; 256],
+        }
+    }
 }

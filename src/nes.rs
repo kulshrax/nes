@@ -1,16 +1,25 @@
 use crate::cpu::Cpu;
-use crate::mem::{Address, Memory};
+use crate::ppu::Ppu;
+use crate::rom::Rom;
+
+use anyhow::Result;
 
 pub struct Nes {
     cpu: Cpu,
-    memory: Memory,
+    ppu: Ppu,
+    rom: Rom,
 }
 
 impl Nes {
-    pub fn new() -> Self {
+    pub fn new(rom: Rom) -> Self {
         Self {
             cpu: Cpu::new(),
-            memory: Memory::new(),
+            ppu: Ppu::new(),
+            rom
         }
+    }
+
+    pub fn start(&self) -> Result<()> {
+        unimplemented!()
     }
 }

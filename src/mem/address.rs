@@ -12,8 +12,7 @@ use hex::FromHex;
 pub struct Address(u16);
 
 impl Address {
-    /// Convert this address into a usize so that it
-    /// can be used as an array index.
+    /// Convert address into a usize so that it can be used as an array index.
     pub(super) fn as_usize(&self) -> usize {
         self.0 as usize
     }
@@ -37,18 +36,16 @@ impl From<u16> for Address {
     }
 }
 
-/// An address can be constructed from a single byte, in
-/// which case that byte will be used as the least significant
-/// byte of the 16-bit address. This is useful for constructing
-/// addresses for the zero page (the first 256 bytes of memory).
+/// An address can be constructed from a single byte, in which case that byte
+/// will be used as the least significant byte of the 16-bit address. This is
+/// useful for addresses in the zero page (the first 256 bytes of memory).
 impl From<u8> for Address {
     fn from(addr: u8) -> Self {
         Self(addr as u16)
     }
 }
 
-/// When constructing an address from an array of two bytes,
-/// the bytes will be interpretted in little endian order.
+/// Interpret bytes as a little-endian 16-bit address.
 impl From<[u8; 2]> for Address {
     fn from(bytes: [u8; 2]) -> Self {
         Self(u16::from_le_bytes(bytes))

@@ -13,10 +13,13 @@ const CHR_BANK_SIZE: usize = 8192; // 8 KiB
 /// The contents of an iNES-format ROM file.
 #[derive(Debug)]
 pub struct Rom {
-    pub prg_count: usize,
-    pub chr_count: usize,
-    pub prg_data: Vec<u8>,
-    pub chr_data: Vec<u8>,
+    // ROM sizes are specified as multiples of the appropriate bank size.
+    pub prg_size: usize,
+    pub chr_size: usize,
+
+    // Contents of cartridge ROM chips.
+    pub prg_rom: Vec<u8>,
+    pub chr_rom: Vec<u8>,
 }
 
 impl Rom {
@@ -36,25 +39,25 @@ fn parse_rom(bytes: &[u8]) -> IResult<&[u8], Rom> {
     // Initial 4 byte magic sequence.
     let (bytes, _) = tag(b"NES\x1A")(bytes.as_ref())?;
 
-    // Number of PRG (program) and CHR (character) banks.
-    let (bytes, prg_count) = le_u8(bytes)?;
-    let prg_count = prg_count as usize;
+    // Number of PRG (program) and CHR (character) ROM banks.
+    let (bytes, prg_size) = le_u8(bytes)?;
+    let prg_size = prg_size as usize;
 
-    let (bytes, chr_count) = le_u8(bytes)?;
-    let chr_count = chr_count as usize;
+    let (bytes, chr_size) = le_u8(bytes)?;
+    let chr_size = chr_size as usize;
 
     // Other fields we don't care about yet.
     let (bytes, _) = take(10usize)(bytes)?;
 
     // Actual PRG and CHR bank data.
-    let (bytes, prg_data) = take(prg_count * PRG_BANK_SIZE)(bytes)?;
-    let (bytes, chr_data) = take(chr_count * CHR_BANK_SIZE)(bytes)?;
+    let (bytes, prg_rom) = take(prg_size * PRG_BANK_SIZE)(bytes)?;
+    let (bytes, chr_rom) = take(chr_size * CHR_BANK_SIZE)(bytes)?;
 
     let rom = Rom {
-        prg_count,
-        chr_count,
-        prg_data: prg_data.to_vec(),
-        chr_data: chr_data.to_vec(),
+        prg_size,
+        chr_size,
+        prg_rom: prg_rom.to_vec(),
+        chr_rom: chr_rom.to_vec(),
     };
 
     Ok((bytes, rom))

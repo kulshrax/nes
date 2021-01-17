@@ -19,7 +19,7 @@ use std::cmp;
 
 use anyhow::{bail, Result};
 
-use crate::mem::{Address, Memory};
+use crate::mem::{Address, Bus};
 
 use addressing::{Absolute, AddressingMode, Relative};
 use instruction::Instruction;
@@ -90,7 +90,7 @@ impl Cpu {
 
     /// Manually set the address stored in the CPU's reset vector. Program
     /// execution will begin from this address on CPU startup or reset.
-    pub fn set_reset_vector(&mut self, memory: &mut dyn Memory, addr: Address) {
+    pub fn set_reset_vector(&mut self, memory: &mut dyn Bus, addr: Address) {
         let [low, high] = <[u8; 2]>::from(addr);
         memory.store(Address::from(RESET_VECTOR[0]), low);
         memory.store(Address::from(RESET_VECTOR[1]), high);
@@ -104,7 +104,7 @@ impl Cpu {
 
     /// Fetch and execute a single instruction. Returns the the number of clock
     /// cycles taken to execute the instruction.
-    pub fn step(&mut self, memory: &mut dyn Memory) -> Result<usize> {
+    pub fn step(&mut self, memory: &mut dyn Bus) -> Result<usize> {
         // Save starting program counter.
         let pc = self.registers.pc;
 
@@ -136,7 +136,7 @@ impl Cpu {
 
     /// Reset the CPU by disabling interrupts and jumping to the location
     /// specified by the initialization vector.
-    pub fn reset(&mut self, memory: &dyn Memory) {
+    pub fn reset(&mut self, memory: &dyn Bus) {
         self.registers.p.insert(Flags::INTERRUPT_DISABLE);
         let low = memory.load(Address::from(RESET_VECTOR[0]));
         let high = memory.load(Address::from(RESET_VECTOR[1]));
@@ -144,7 +144,7 @@ impl Cpu {
     }
 
     /// Interrupt request.
-    pub fn irq(&mut self, memory: &mut dyn Memory) {
+    pub fn irq(&mut self, memory: &mut dyn Bus) {
         log::trace!("Received IRQ");
         if self.registers.p.contains(Flags::INTERRUPT_DISABLE) {
             log::trace!("Interrupts are disabled; IRQ will be handled when they are enabled");
@@ -157,12 +157,12 @@ impl Cpu {
 
     /// Non-maskable interrupt.
     #[allow(dead_code)]
-    pub fn nmi(&mut self, memory: &mut dyn Memory) {
+    pub fn nmi(&mut self, memory: &mut dyn Bus) {
         self.interrupt(memory, &NMI_VECTOR, false);
     }
 
     /// Execute the given instruction.
-    fn exec(&mut self, memory: &mut dyn Memory, op: Instruction) {
+    fn exec(&mut self, memory: &mut dyn Bus, op: Instruction) {
         use Instruction::*;
         match op {
             AdcI(am) => self.adc(am, memory),
@@ -324,7 +324,7 @@ impl Cpu {
     /// from by the address stored at the location specified by the given
     /// interrupt vector. The brk parameter allows specifying whether this was a
     /// software or hardware interrupt.
-    fn interrupt(&mut self, memory: &mut dyn Memory, vector: &[u16; 2], brk: bool) {
+    fn interrupt(&mut self, memory: &mut dyn Bus, vector: &[u16; 2], brk: bool) {
         // Push program counter to stack.
         let [low, high] = <[u8; 2]>::from(self.registers.pc + 1u8);
         self.push_stack(memory, high);
@@ -358,7 +358,7 @@ impl Cpu {
     /// Push a value onto the call stack. Note that if the stack pointer
     /// overflows, this will wrap around and overwrite data at the start of the
     /// stack.
-    fn push_stack(&mut self, memory: &mut dyn Memory, value: u8) {
+    fn push_stack(&mut self, memory: &mut dyn Bus, value: u8) {
         memory.store(self.stack(), value);
         self.registers.s = self.registers.s.wrapping_sub(1);
     }
@@ -366,7 +366,7 @@ impl Cpu {
     /// Pull ("pop" in more modern terms) a value from the call stack. If the
     /// stack pointer underflows, it will wrap around to the top of memory page
     /// 1, potentially reading garbage.
-    fn pull_stack(&mut self, memory: &mut dyn Memory) -> u8 {
+    fn pull_stack(&mut self, memory: &mut dyn Bus) -> u8 {
         self.registers.s = self.registers.s.wrapping_add(1);
         memory.load(self.stack())
     }
@@ -387,7 +387,7 @@ impl Cpu {
 /// instruction.
 impl Cpu {
     /// Add with carry.
-    fn adc(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn adc(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let carry_in = self.registers.p.contains(Flags::CARRY);
 
@@ -406,14 +406,14 @@ impl Cpu {
     }
 
     /// Logical AND.
-    fn and(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn and(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         self.registers.a &= value;
         self.check_zero_or_negative(self.registers.a);
     }
 
     /// Arithmetic left shift.
-    fn asl(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn asl(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let res = value << 1;
         am.store(memory, &mut self.registers, res);
@@ -423,7 +423,7 @@ impl Cpu {
     }
 
     /// Branch if carry clear.
-    fn bcc(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bcc(&mut self, am: Relative, memory: &mut dyn Bus) {
         if !self.registers.p.contains(Flags::CARRY) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -431,7 +431,7 @@ impl Cpu {
     }
 
     /// Branch if carry set.
-    fn bcs(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bcs(&mut self, am: Relative, memory: &mut dyn Bus) {
         if self.registers.p.contains(Flags::CARRY) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -439,7 +439,7 @@ impl Cpu {
     }
 
     /// Branch if equal.
-    fn beq(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn beq(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         if self.registers.p.contains(Flags::ZERO) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -447,7 +447,7 @@ impl Cpu {
     }
 
     /// Bit test.
-    fn bit(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn bit(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let res = self.registers.a & value;
         self.registers.p.set(Flags::ZERO, res == 0);
@@ -456,7 +456,7 @@ impl Cpu {
     }
 
     /// Branch if minus.
-    fn bmi(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bmi(&mut self, am: Relative, memory: &mut dyn Bus) {
         if self.registers.p.contains(Flags::NEGATIVE) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -464,7 +464,7 @@ impl Cpu {
     }
 
     /// Branch if not equal.
-    fn bne(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bne(&mut self, am: Relative, memory: &mut dyn Bus) {
         if !self.registers.p.contains(Flags::ZERO) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -472,7 +472,7 @@ impl Cpu {
     }
 
     /// Branch if positive.
-    fn bpl(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bpl(&mut self, am: Relative, memory: &mut dyn Bus) {
         if !self.registers.p.contains(Flags::NEGATIVE) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -480,12 +480,12 @@ impl Cpu {
     }
 
     /// Force interrupt.
-    fn brk(&mut self, memory: &mut dyn Memory) {
+    fn brk(&mut self, memory: &mut dyn Bus) {
         self.interrupt(memory, &IRQ_VECTOR, true);
     }
 
     /// Branch if overflow clear.
-    fn bvc(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bvc(&mut self, am: Relative, memory: &mut dyn Bus) {
         if !self.registers.p.contains(Flags::OVERFLOW) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -493,7 +493,7 @@ impl Cpu {
     }
 
     /// Branch if overflow set.
-    fn bvs(&mut self, am: Relative, memory: &mut dyn Memory) {
+    fn bvs(&mut self, am: Relative, memory: &mut dyn Bus) {
         if self.registers.p.contains(Flags::OVERFLOW) {
             let addr = am.address(memory, &mut self.registers);
             self.registers.pc = addr;
@@ -521,7 +521,7 @@ impl Cpu {
     }
 
     /// Compare.
-    fn cmp(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn cmp(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         log::info!("A: {}, M: {}", self.registers.a, value);
         let (res, overflowed) = self.registers.a.overflowing_sub(value);
@@ -530,7 +530,7 @@ impl Cpu {
     }
 
     /// Compare X register.
-    fn cpx(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn cpx(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let (res, overflowed) = self.registers.x.overflowing_sub(value);
         self.registers.p.set(Flags::CARRY, !overflowed);
@@ -538,7 +538,7 @@ impl Cpu {
     }
 
     /// Compare Y register.
-    fn cpy(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn cpy(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let (res, overflowed) = self.registers.y.overflowing_sub(value);
         self.registers.p.set(Flags::CARRY, !overflowed);
@@ -546,7 +546,7 @@ impl Cpu {
     }
 
     /// Decrement memory.
-    fn dec(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn dec(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let mut value = am.load(memory, &self.registers);
         value = value.wrapping_sub(1);
         am.store(memory, &mut self.registers, value);
@@ -566,14 +566,14 @@ impl Cpu {
     }
 
     /// Exclusive OR.
-    fn eor(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn eor(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         self.registers.a ^= value;
         self.check_zero_or_negative(self.registers.a);
     }
 
     /// Incrememnt memory.
-    fn inc(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn inc(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let mut value = am.load(memory, &self.registers);
         value = value.wrapping_add(1);
         am.store(memory, &mut self.registers, value);
@@ -593,12 +593,12 @@ impl Cpu {
     }
 
     /// Jump.
-    fn jmp(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn jmp(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         self.registers.pc = am.address(memory, &mut self.registers);
     }
 
     /// Jump to subroutine.
-    fn jsr(&mut self, am: Absolute, memory: &mut dyn Memory) {
+    fn jsr(&mut self, am: Absolute, memory: &mut dyn Bus) {
         let ret = self.registers.pc - 1u8;
         let [low, high] = <[u8; 2]>::from(ret);
         self.push_stack(memory, high);
@@ -607,28 +607,28 @@ impl Cpu {
     }
 
     /// Load accumulator.
-    fn lda(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn lda(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         self.registers.a = value;
         self.check_zero_or_negative(value);
     }
 
     /// Load X register.
-    fn ldx(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn ldx(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         self.registers.x = value;
         self.check_zero_or_negative(value);
     }
 
     /// Load Y register.
-    fn ldy(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn ldy(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         self.registers.y = value;
         self.check_zero_or_negative(value);
     }
 
     /// Logical shift right.
-    fn lsr(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn lsr(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let res = value >> 1;
         am.store(memory, &mut self.registers, res);
@@ -641,37 +641,37 @@ impl Cpu {
     fn nop(&mut self) {}
 
     /// Logical inclusive OR.
-    fn ora(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn ora(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         self.registers.a |= value;
         self.check_zero_or_negative(self.registers.a);
     }
 
     /// Push accumulator.
-    fn pha(&mut self, memory: &mut dyn Memory) {
+    fn pha(&mut self, memory: &mut dyn Bus) {
         self.push_stack(memory, self.registers.a);
     }
 
     /// Push processor status.
-    fn php(&mut self, memory: &mut dyn Memory) {
+    fn php(&mut self, memory: &mut dyn Bus) {
         let flags = self.registers.p | Flags::ALWAYS_ON;
         self.push_stack(memory, flags.bits());
     }
 
     /// Pull accumulator.
-    fn pla(&mut self, memory: &mut dyn Memory) {
+    fn pla(&mut self, memory: &mut dyn Bus) {
         self.registers.a = self.pull_stack(memory);
         self.check_zero_or_negative(self.registers.a);
     }
 
     /// Pull processor status.
-    fn plp(&mut self, memory: &mut dyn Memory) {
+    fn plp(&mut self, memory: &mut dyn Bus) {
         let bits = self.pull_stack(memory);
         self.registers.p = Flags::from_bits_truncate(bits) | Flags::ALWAYS_ON;
     }
 
     /// Rotate left.
-    fn rol(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn rol(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let mut value = am.load(memory, &self.registers);
 
         // Current value of the carry flag, which will be
@@ -689,7 +689,7 @@ impl Cpu {
     }
 
     /// Rotate right.
-    fn ror(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn ror(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let mut value = am.load(memory, &self.registers);
 
         // Current value of the carry flag, which will be
@@ -707,7 +707,7 @@ impl Cpu {
     }
 
     /// Return from interrupt.
-    fn rti(&mut self, memory: &mut dyn Memory) {
+    fn rti(&mut self, memory: &mut dyn Bus) {
         let bits = self.pull_stack(memory);
         self.registers.p = Flags::from_bits_truncate(bits) | Flags::ALWAYS_ON;
 
@@ -717,14 +717,14 @@ impl Cpu {
     }
 
     /// Return from subroutine.
-    fn rts(&mut self, memory: &mut dyn Memory) {
+    fn rts(&mut self, memory: &mut dyn Bus) {
         let low = self.pull_stack(memory);
         let high = self.pull_stack(memory);
         self.registers.pc = Address::from([low, high]) + 1u8;
     }
 
     /// Subtract with carry.
-    fn sbc(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn sbc(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
         let carry_in = !self.registers.p.contains(Flags::CARRY);
 
@@ -758,19 +758,19 @@ impl Cpu {
     }
 
     /// Store accumulator.
-    fn sta(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn sta(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = self.registers.a;
         am.store(memory, &mut self.registers, value);
     }
 
     /// Store X register.
-    fn stx(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn stx(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = self.registers.x;
         am.store(memory, &mut self.registers, value);
     }
 
     /// Store Y register.
-    fn sty(&mut self, am: impl AddressingMode, memory: &mut dyn Memory) {
+    fn sty(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = self.registers.y;
         am.store(memory, &mut self.registers, value);
     }

@@ -1,4 +1,4 @@
-use crate::mem::{Address, Memory};
+use crate::mem::{Address, Bus};
 
 use super::registers::Registers;
 
@@ -6,13 +6,13 @@ pub(super) trait AddressingMode {
     /// Return the address of the target location specified by this addressing
     /// mode. This will panic for modes where this is not possible. (For
     /// example, attempting to get the address of a register or immediate value)
-    fn address(&self, memory: &dyn Memory, registers: &Registers) -> Address;
+    fn address(&self, memory: &dyn Bus, registers: &Registers) -> Address;
 
     /// Load a value from the location specified by this addressing mode. This
     /// may be loaded from a location in memory, from a register, from an
     /// immediate value, or from a combination of these (in the case of indexed
     /// and indirect addressing modes).
-    fn load(&self, memory: &dyn Memory, registers: &Registers) -> u8 {
+    fn load(&self, memory: &dyn Bus, registers: &Registers) -> u8 {
         memory.load(self.address(memory, registers))
     }
 
@@ -20,7 +20,7 @@ pub(super) trait AddressingMode {
     /// may be loaded from a location in memory, from a register, from an
     /// immediate value, or from a combination of these (in the case of indexed
     /// and indirect addressing modes).
-    fn store(&self, memory: &mut dyn Memory, registers: &mut Registers, value: u8) {
+    fn store(&self, memory: &mut dyn Bus, registers: &mut Registers, value: u8) {
         memory.store(self.address(memory, registers), value);
     }
 }
@@ -31,15 +31,15 @@ pub(super) trait AddressingMode {
 pub(super) struct Accumulator;
 
 impl AddressingMode for Accumulator {
-    fn address(&self, _memory: &dyn Memory, _registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, _registers: &Registers) -> Address {
         panic!("Cannot take address of accumulator");
     }
 
-    fn load(&self, _memory: &dyn Memory, registers: &Registers) -> u8 {
+    fn load(&self, _memory: &dyn Bus, registers: &Registers) -> u8 {
         registers.a
     }
 
-    fn store(&self, _memory: &mut dyn Memory, registers: &mut Registers, value: u8) {
+    fn store(&self, _memory: &mut dyn Bus, registers: &mut Registers, value: u8) {
         registers.a = value;
     }
 }
@@ -51,11 +51,11 @@ impl AddressingMode for Accumulator {
 pub(super) struct Immediate(pub(super) u8);
 
 impl AddressingMode for Immediate {
-    fn address(&self, _memory: &dyn Memory, _registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, _registers: &Registers) -> Address {
         panic!("Cannot take address of immediate value");
     }
 
-    fn load(&self, _memory: &dyn Memory, _registers: &Registers) -> u8 {
+    fn load(&self, _memory: &dyn Bus, _registers: &Registers) -> u8 {
         self.0
     }
 }
@@ -71,7 +71,7 @@ impl AddressingMode for Immediate {
 pub(super) struct ZeroPage(pub(super) u8);
 
 impl AddressingMode for ZeroPage {
-    fn address(&self, _memory: &dyn Memory, _registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, _registers: &Registers) -> Address {
         Address::from(self.0)
     }
 }
@@ -84,7 +84,7 @@ impl AddressingMode for ZeroPage {
 pub(super) struct ZeroPageX(pub(super) u8);
 
 impl AddressingMode for ZeroPageX {
-    fn address(&self, _memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, registers: &Registers) -> Address {
         Address::from(registers.x.wrapping_add(self.0))
     }
 }
@@ -97,7 +97,7 @@ impl AddressingMode for ZeroPageX {
 pub(super) struct ZeroPageY(pub(super) u8);
 
 impl AddressingMode for ZeroPageY {
-    fn address(&self, _memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, registers: &Registers) -> Address {
         Address::from(registers.y.wrapping_add(self.0))
     }
 }
@@ -112,7 +112,7 @@ impl AddressingMode for ZeroPageY {
 pub(super) struct Relative(pub(super) i8);
 
 impl AddressingMode for Relative {
-    fn address(&self, _memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, registers: &Registers) -> Address {
         registers.pc + self.0
     }
 }
@@ -123,7 +123,7 @@ impl AddressingMode for Relative {
 pub(super) struct Absolute(pub(super) Address);
 
 impl AddressingMode for Absolute {
-    fn address(&self, _memory: &dyn Memory, _registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, _registers: &Registers) -> Address {
         self.0
     }
 }
@@ -135,7 +135,7 @@ impl AddressingMode for Absolute {
 pub(super) struct AbsoluteX(pub(super) Address);
 
 impl AddressingMode for AbsoluteX {
-    fn address(&self, _memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, registers: &Registers) -> Address {
         self.0 + registers.x
     }
 }
@@ -147,7 +147,7 @@ impl AddressingMode for AbsoluteX {
 pub(super) struct AbsoluteY(pub(super) Address);
 
 impl AddressingMode for AbsoluteY {
-    fn address(&self, _memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, _memory: &dyn Bus, registers: &Registers) -> Address {
         self.0 + registers.y
     }
 }
@@ -160,7 +160,7 @@ impl AddressingMode for AbsoluteY {
 pub(super) struct Indirect(pub(super) Address);
 
 impl AddressingMode for Indirect {
-    fn address(&self, memory: &dyn Memory, _registers: &Registers) -> Address {
+    fn address(&self, memory: &dyn Bus, _registers: &Registers) -> Address {
         let low = memory.load(self.0);
         let high = memory.load(self.0 + 1u8);
         Address::from([low, high])
@@ -178,7 +178,7 @@ impl AddressingMode for Indirect {
 pub(super) struct IndexedIndirect(pub(super) u8);
 
 impl AddressingMode for IndexedIndirect {
-    fn address(&self, memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, memory: &dyn Bus, registers: &Registers) -> Address {
         let low_addr = Address::from(self.0.wrapping_add(registers.x));
         let low = memory.load(low_addr);
 
@@ -197,7 +197,7 @@ impl AddressingMode for IndexedIndirect {
 pub(super) struct IndirectIndexed(pub(super) u8);
 
 impl AddressingMode for IndirectIndexed {
-    fn address(&self, memory: &dyn Memory, registers: &Registers) -> Address {
+    fn address(&self, memory: &dyn Bus, registers: &Registers) -> Address {
         let low_addr = Address::from(self.0);
         let low = memory.load(low_addr);
 

@@ -9,7 +9,7 @@ use anyhow::{bail, Context, Error};
 use hex::FromHex;
 
 #[derive(Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Address(u16);
+pub struct Address(pub u16);
 
 impl Address {
     /// Convert address into a usize so that it can be used as an array index.

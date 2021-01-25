@@ -43,7 +43,6 @@ const STACK_START: u16 = 0x0100;
 /// vector location. There are several interrupt vectors, each corresponding to
 /// a different kind of interrupt. All of them stored in the highest bytes of
 /// the 16-bit address space.
-#[allow(dead_code)]
 const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
 const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
 const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];

@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     fmt,
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, BitXor, Sub, SubAssign},
     str::FromStr,
 };
 
@@ -156,6 +156,14 @@ impl SubAssign<i8> for Address {
         } else {
             self.0 -= other as u16;
         }
+    }
+}
+
+impl BitXor<u16> for Address {
+    type Output = Self;
+
+    fn bitxor(self, mask: u16) -> Self::Output {
+        Self(self.0 ^ mask)
     }
 }
 

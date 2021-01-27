@@ -3,6 +3,7 @@ pub use bus::Bus;
 
 mod address;
 mod bus;
+mod mapper;
 
 use crate::rom::Rom;
 

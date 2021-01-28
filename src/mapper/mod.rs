@@ -1,11 +1,11 @@
-use crate::mem::{Address, Bus};
+use crate::mem::Address;
 
 pub trait Mapper {
-    fn cpuLoad(memory: &mut dyn Bus, addr: Address) -> Option<u8>;
+    fn cpu_load(addr: Address) -> u8;
 
-    fn cpuStore(memory: &mut dyn Bus, addr: Address, value: u8) -> Option<()>;
+    fn cpu_store(addr: Address, value: u8);
 
-    fn ppuLoad(memory: &mut dyn Bus, addr: Address) -> Option<u8>;
+    fn ppu_load(addr: Address) -> u8;
 
-    fn ppuStore(memory: &mut dyn Bus, addr: Address, value: u8) -> Option<()>;
+    fn ppu_store(addr: Address, value: u8);
 }

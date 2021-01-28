@@ -6,6 +6,7 @@ use log;
 use structopt::StructOpt;
 
 mod cpu;
+mod mapper;
 mod mem;
 mod nes;
 mod ppu;

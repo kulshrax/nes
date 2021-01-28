@@ -1,5 +1,7 @@
 use crate::mem::Address;
 
+mod mapper0;
+
 pub trait Mapper {
     fn cpu_load(addr: Address) -> u8;
 

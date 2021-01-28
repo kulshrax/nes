@@ -1,8 +1,6 @@
 pub use address::Address;
-pub use bus::Bus;
 
 mod address;
-mod bus;
 
 use crate::ppu::Ppu;
 use crate::rom::Rom;
@@ -11,6 +9,27 @@ const RAM_SIZE: usize = 2048;
 const PPU_REG_START: Address = Address(0x2000);
 const IO_REG_START: Address = Address(0x4000);
 const CART_SPACE_START: Address = Address(0x4020);
+
+/// Trait representing the CPU's address bus. The actual destination of loads
+/// and stores are mapped by hardware to several possible locations, including
+/// the NES's RAM, the PPU, various IO registers, or the cartridge, which in
+/// turn can arbitrarily map the memory access to its contents.
+pub trait Bus {
+    fn load(&self, addr: Address) -> u8;
+
+    fn store(&mut self, addr: Address, value: u8);
+}
+
+/// It can be useful to treat the 16-bit address space as an array for testing.
+impl Bus for [u8; 0x10000] {
+    fn load(&self, addr: Address) -> u8 {
+        self[addr.as_usize()]
+    }
+
+    fn store(&mut self, addr: Address, value: u8) {
+        self[addr.as_usize()] = value;
+    }
+}
 
 /// Memory map of the NES's CPU address space, laid out as folows:
 ///

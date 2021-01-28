@@ -6,6 +6,8 @@ use crate::ppu::Ppu;
 use crate::rom::Rom;
 
 const RAM_SIZE: usize = 2048;
+const RAM_ADDR_BITS: u8 = 11;
+
 const PPU_REG_START: Address = Address(0x2000);
 const IO_REG_START: Address = Address(0x4000);
 const CART_SPACE_START: Address = Address(0x4020);
@@ -61,7 +63,7 @@ impl Bus for Memory {
     fn load(&self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
             // Read from RAM.
-            self.ram[addr.as_usize()]
+            self.ram[addr.alias(RAM_ADDR_BITS).as_usize()]
         } else if addr < IO_REG_START {
             // Read from a PPU register.
             self.ppu.load(addr)
@@ -77,7 +79,7 @@ impl Bus for Memory {
     fn store(&mut self, addr: Address, value: u8) {
         if addr < PPU_REG_START {
             // Write to RAM.
-            self.ram[addr.as_usize()] = value;
+            self.ram[addr.alias(RAM_ADDR_BITS).as_usize()] = value;
         } else if addr < IO_REG_START {
             // Write to a PPU register.
             self.ppu.store(addr, value);

@@ -1,7 +1,7 @@
 use crate::cpu::Cpu;
+use crate::mem::Memory;
 use crate::ppu::Ppu;
 use crate::rom::Rom;
-use crate::mem::Memory;
 
 use anyhow::Result;
 

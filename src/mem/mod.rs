@@ -5,16 +5,19 @@ mod address;
 mod bus;
 mod mapper;
 
-use crate::rom::Rom;
 use crate::ppu::Ppu;
+use crate::rom::Rom;
 
 const RAM_SIZE: usize = 2048;
+const RAM_ADDR_BITS: u8 = 11;
 
 const PPU_REG_START: Address = Address(0x2000);
 const PPU_REG_SIZE: usize = 8;
+const PPU_REG_BITS: u8 = 3;
 
 const IO_REG_START: Address = Address(0x4000);
-const IO_REG_SIZE: usize = 24;
+const IO_REG_SIZE: usize = 32;
+const IO_REG_BITS: usize = 5;
 
 const CART_SPACE_START: Address = Address(0x4020);
 const CART_SPACE_SIZE: usize = 49152; // Remainder of address space.
@@ -46,22 +49,17 @@ impl Bus for Memory {
     fn load(&self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
             // Read from RAM.
-            let addr = mask(addr, RAM_SIZE);
-            self.ram.load(addr)
+            unimplemented!()
         } else if addr < IO_REG_START {
-            // Read from PPU register.
-            let addr = mask(addr, PPU_REG_SIZE);
-            //self.ppu.load(addr)
-            0
+            // Read from PPU registers.
+            unimplemented!()
         } else if addr < CART_SPACE_START {
-            // Read from IO register.
-            let _addr = mask(addr, IO_REG_SIZE);
-            0
+            // Read from IO registers.
+            unimplemented!()
         } else {
             // Read from cartridge.
-            0
+            unimplemented!()
         }
-        
     }
 
     fn store(&mut self, addr: Address, value: u8) {
@@ -85,17 +83,4 @@ impl Bus for Ram {
     fn store(&mut self, addr: Address, value: u8) {
         self.0[addr.as_usize()] = value;
     }
-}
-
-/// Mask off the high order bits for the given address for a memory region of a
-/// given size. The region size must be a power of 2.
-///
-/// On the NES, addresses for each memory-mapped region are incomletely decoded,
-/// meaning that the hardware only reads as many low order address lines (bits)
-/// are needed for the given region size. This results in aliasing, which is why
-/// several of the NES's memory regions are mirrored within the address space.
-fn mask(addr: Address, size: usize) -> Address {
-    // Memory region size must be a power of 2.
-    assert_eq!((size & (size - 1)), 0);
-    addr & (size as u16 - 1)
 }

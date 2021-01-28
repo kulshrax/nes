@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     fmt,
-    ops::{Add, AddAssign, BitAnd, Sub, SubAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
     str::FromStr,
 };
 
@@ -15,6 +15,16 @@ impl Address {
     /// Convert address into a usize so that it can be used as an array index.
     pub(super) fn as_usize(&self) -> usize {
         self.0 as usize
+    }
+
+    /// Mask off the most significant bits of the address, leaving the specified
+    /// number of trailing bits intact. This simulates incomplete decoding of
+    /// addresses (wherein only the N least significant address lines are read
+    /// by the NES hardware), resulting in aliasing that causes regions of
+    /// memory to be mirrored throughout the address space.
+    pub fn alias(&self, n_bits: u8) -> Address {
+        let mask = (1 << n_bits) - 1;
+        Address(self.0 & mask)
     }
 }
 
@@ -156,14 +166,6 @@ impl SubAssign<i8> for Address {
         } else {
             self.0 -= other as u16;
         }
-    }
-}
-
-impl BitAnd<u16> for Address {
-    type Output = Self;
-
-    fn bitand(self, mask: u16) -> Self::Output {
-        Self(self.0 & mask)
     }
 }
 

@@ -29,7 +29,7 @@ impl Registers {
         match reg {
             Ctrl => self.ctrl,
             Mask => self.mask,
-            Status => self.status, 
+            Status => self.status,
             Scroll => self.scroll,
             Addr => self.addr,
             Data => self.data,
@@ -37,14 +37,14 @@ impl Registers {
             OamData => self.oam_data,
             OamDma => self.oam_dma,
         }
-    } 
+    }
 
     fn get_mut(&mut self, reg: PpuRegister) -> &mut u8 {
         use PpuRegister::*;
         match reg {
             Ctrl => &mut self.ctrl,
             Mask => &mut self.mask,
-            Status => &mut self.status, 
+            Status => &mut self.status,
             Scroll => &mut self.scroll,
             Addr => &mut self.addr,
             Data => &mut self.data,
@@ -52,7 +52,7 @@ impl Registers {
             OamData => &mut self.oam_data,
             OamDma => &mut self.oam_dma,
         }
-    } 
+    }
 }
 
 pub struct Ppu {
@@ -74,7 +74,7 @@ impl Ppu {
 
     pub fn read(&self, reg: PpuRegister) -> u8 {
         self.registers.get(reg)
-    } 
+    }
 
     pub fn write(&mut self, reg: PpuRegister, value: u8) {
         *self.registers.get_mut(reg) = value;

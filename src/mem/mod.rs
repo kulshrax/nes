@@ -9,22 +9,12 @@ use crate::ppu::Ppu;
 use crate::rom::Rom;
 
 const RAM_SIZE: usize = 2048;
-const RAM_ADDR_BITS: u8 = 11;
-
 const PPU_REG_START: Address = Address(0x2000);
-const PPU_REG_SIZE: usize = 8;
-const PPU_REG_BITS: u8 = 3;
-
 const IO_REG_START: Address = Address(0x4000);
-const IO_REG_SIZE: usize = 32;
-const IO_REG_BITS: usize = 5;
-
 const CART_SPACE_START: Address = Address(0x4020);
-const CART_SPACE_SIZE: usize = 49152; // Remainder of address space.
 
-/// Struct representing the NES's CPU memory bus.
+/// Memory map of the NES's CPU address space, laid out as folows:
 ///
-/// The NES's CPU address space is laid out as folows:
 ///   0x0000 - 0x07FF: RAM (2kB)
 ///   0x0800 - 0x1FFF: Mirrors of RAM (repeated 3 times)
 ///   0x2000 - 0x2007: Memory mapped PPU registers (8 total)
@@ -34,14 +24,14 @@ const CART_SPACE_SIZE: usize = 49152; // Remainder of address space.
 ///   0x4020 - 0xFFFF: Cartridge address space (PRG ROM, PRG RAM, mappers)
 ///
 pub struct Memory {
-    ram: Ram,
+    ram: [u8; RAM_SIZE],
     // ppu: Ppu,
     // rom: Rom,
 }
 
 impl Memory {
     pub fn new() -> Self {
-        Self { ram: Ram::new() }
+        Self { ram: [0; RAM_SIZE] }
     }
 }
 
@@ -49,38 +39,32 @@ impl Bus for Memory {
     fn load(&self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
             // Read from RAM.
-            unimplemented!()
+            self.ram[addr.as_usize()]
         } else if addr < IO_REG_START {
-            // Read from PPU registers.
+            // Read from a PPU register.
             unimplemented!()
         } else if addr < CART_SPACE_START {
-            // Read from IO registers.
+            // Read from an IO register.
             unimplemented!()
         } else {
-            // Read from cartridge.
+            // Read from the cartridge via its mapper.
             unimplemented!()
         }
     }
 
     fn store(&mut self, addr: Address, value: u8) {
-        unimplemented!()
-    }
-}
-
-struct Ram([u8; RAM_SIZE]);
-
-impl Ram {
-    fn new() -> Self {
-        Ram([0; RAM_SIZE])
-    }
-}
-
-impl Bus for Ram {
-    fn load(&self, addr: Address) -> u8 {
-        self.0[addr.as_usize()]
-    }
-
-    fn store(&mut self, addr: Address, value: u8) {
-        self.0[addr.as_usize()] = value;
+        if addr < PPU_REG_START {
+            // Write to RAM.
+            self.ram[addr.as_usize()] = value;
+        } else if addr < IO_REG_START {
+            // Write to a PPU register.
+            unimplemented!()
+        } else if addr < CART_SPACE_START {
+            // Write to an IO register.
+            unimplemented!()
+        } else {
+            // Write to the cartridge via its mapper.
+            unimplemented!()
+        }
     }
 }

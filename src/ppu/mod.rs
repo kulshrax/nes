@@ -1,62 +1,23 @@
+use crate::mem::{Address, Bus};
+
+// Since there are only 8 PPU registers, only the last 3 address bits are used
+// to determine which register to select.
+const PPU_REG_ADDR_BITS: u8 = 3;
+
+#[repr(usize)]
 pub enum PpuRegister {
-    Ctrl,
-    Mask,
-    Status,
-    Scroll,
-    Addr,
-    Data,
-    OamAddr,
-    OamData,
-    OamDma,
-}
-
-#[derive(Default)]
-struct Registers {
-    ctrl: u8,
-    mask: u8,
-    status: u8,
-    scroll: u8,
-    addr: u8,
-    data: u8,
-    oam_addr: u8,
-    oam_data: u8,
-    oam_dma: u8,
-}
-
-impl Registers {
-    fn get(&self, reg: PpuRegister) -> u8 {
-        use PpuRegister::*;
-        match reg {
-            Ctrl => self.ctrl,
-            Mask => self.mask,
-            Status => self.status,
-            Scroll => self.scroll,
-            Addr => self.addr,
-            Data => self.data,
-            OamAddr => self.oam_addr,
-            OamData => self.oam_data,
-            OamDma => self.oam_dma,
-        }
-    }
-
-    fn get_mut(&mut self, reg: PpuRegister) -> &mut u8 {
-        use PpuRegister::*;
-        match reg {
-            Ctrl => &mut self.ctrl,
-            Mask => &mut self.mask,
-            Status => &mut self.status,
-            Scroll => &mut self.scroll,
-            Addr => &mut self.addr,
-            Data => &mut self.data,
-            OamAddr => &mut self.oam_addr,
-            OamData => &mut self.oam_data,
-            OamDma => &mut self.oam_dma,
-        }
-    }
+    Ctrl = 0,
+    Mask = 1,
+    Status = 2,
+    OamAddr = 3,
+    OamData = 4,
+    Scroll = 5,
+    Addr = 6,
+    Data = 7,
 }
 
 pub struct Ppu {
-    registers: Registers,
+    registers: [u8; 8],
     vram: [u8; 2048],
     oam: [u8; 256],
     palette: [u8; 32],
@@ -65,18 +26,28 @@ pub struct Ppu {
 impl Ppu {
     pub fn new() -> Self {
         Self {
-            registers: Registers::default(),
+            registers: [0; 8],
             vram: [0; 2048],
             oam: [0; 256],
             palette: [0; 32],
         }
     }
 
-    pub fn read(&self, reg: PpuRegister) -> u8 {
-        self.registers.get(reg)
+    pub fn get_reg(&self, reg: PpuRegister) -> u8 {
+        self.registers[reg as usize]
     }
 
-    pub fn write(&mut self, reg: PpuRegister, value: u8) {
-        *self.registers.get_mut(reg) = value;
+    pub fn set_reg(&mut self, reg: PpuRegister, value: u8) {
+        self.registers[reg as usize] = value;
+    }
+}
+
+impl Bus for Ppu {
+    fn load(&self, addr: Address) -> u8 {
+        self.registers[addr.alias(PPU_REG_ADDR_BITS).as_usize()]
+    }
+
+    fn store(&mut self, addr: Address, value: u8) {
+        self.registers[addr.alias(PPU_REG_ADDR_BITS).as_usize()] = value;
     }
 }

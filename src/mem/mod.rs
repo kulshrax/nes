@@ -25,13 +25,17 @@ const CART_SPACE_START: Address = Address(0x4020);
 ///
 pub struct Memory {
     ram: [u8; RAM_SIZE],
-    // ppu: Ppu,
-    // rom: Rom,
+    ppu: Ppu,
+    rom: Rom,
 }
 
 impl Memory {
-    pub fn new() -> Self {
-        Self { ram: [0; RAM_SIZE] }
+    pub fn new(rom: Rom) -> Self {
+        Self {
+            ram: [0; RAM_SIZE],
+            ppu: Ppu::new(),
+            rom: rom,
+        }
     }
 }
 
@@ -42,7 +46,7 @@ impl Bus for Memory {
             self.ram[addr.as_usize()]
         } else if addr < IO_REG_START {
             // Read from a PPU register.
-            unimplemented!()
+            self.ppu.load(addr)
         } else if addr < CART_SPACE_START {
             // Read from an IO register.
             unimplemented!()
@@ -58,7 +62,7 @@ impl Bus for Memory {
             self.ram[addr.as_usize()] = value;
         } else if addr < IO_REG_START {
             // Write to a PPU register.
-            unimplemented!()
+            self.ppu.store(addr, value);
         } else if addr < CART_SPACE_START {
             // Write to an IO register.
             unimplemented!()

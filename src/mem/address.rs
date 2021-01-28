@@ -13,7 +13,7 @@ pub struct Address(pub u16);
 
 impl Address {
     /// Convert address into a usize so that it can be used as an array index.
-    pub(super) fn as_usize(&self) -> usize {
+    pub fn as_usize(&self) -> usize {
         self.0 as usize
     }
 

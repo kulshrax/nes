@@ -26,10 +26,10 @@ impl Nes {
     pub fn start(&mut self) -> Result<()> {
         loop {
             let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.cart);
-            let cycles = self.cpu.step(&mut memory)?;
+            self.cpu.tick(&mut memory)?;
 
-            // Run PPU for 3x as many cycles as CPU ran.
-            for _ in 0..(cycles * 3) {
+            // The PPU's clock runs 3x faster than the CPU's.
+            for _ in 0..3 {
                 self.ppu.tick(&mut self.cart);
             }
         }

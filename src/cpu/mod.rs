@@ -51,6 +51,7 @@ const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
 pub struct Cpu {
     registers: Registers,
     irq_pending: bool,
+    cycles_remaining: usize,
 }
 
 impl Cpu {
@@ -58,6 +59,7 @@ impl Cpu {
         Self {
             registers: Registers::new(),
             irq_pending: false,
+            cycles_remaining: 0,
         }
     }
 
@@ -83,7 +85,9 @@ impl Cpu {
 
         self.reset(&mut memory);
         loop {
-            self.step(&mut memory)?;
+            // Note that we don't keep track of cycle timing here since the
+            // CPU is running in isolation.
+            let _ = self.step(&mut memory)?;
         }
     }
 
@@ -131,6 +135,24 @@ impl Cpu {
 
         // TODO: Return the actual number of clock cycles for this instruction.
         Ok(1)
+    }
+
+    /// Drive the CPU with an external clock signal.
+    ///
+    /// CPU instructions generally take several clock cycles to execute. Calling
+    /// this method is equivalent to a single cycle of an external clock. When
+    /// called, the CPU will either execute the next instruction, or wait until
+    /// the "currently executing" instruction has finished. Note that although
+    /// the CPU will "block" for the correct number of clock cycles, the actual
+    /// effect of the instruction happens entirely on the first clock cycle.
+    pub fn tick(&mut self, memory: &mut dyn Bus) -> Result<()> {
+        if self.cycles_remaining == 0 {
+            self.cycles_remaining = self.step(memory)? - 1;
+        } else {
+            self.cycles_remaining -= 1;
+        }
+
+        Ok(())
     }
 
     /// Reset the CPU by disabling interrupts and jumping to the location

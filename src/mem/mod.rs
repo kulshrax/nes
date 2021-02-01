@@ -33,6 +33,28 @@ impl Bus for [u8; 0x10000] {
     }
 }
 
+/// The NES's actual RAM. Since it is much smaller than the address space,
+/// out-of-range addresses are aliased by dropping the high order bits. This
+/// causes the contents of RAM to be mirrored throughout its portion of the
+/// address space, which is how the NES hardware behaves in practice.
+pub struct Ram([u8; RAM_SIZE]);
+
+impl Ram {
+    fn new() -> Self {
+        Ram([0; RAM_SIZE])
+    }
+}
+
+impl Bus for Ram {
+    fn load(&self, addr: Address) -> u8 {
+        self.0[addr.alias(RAM_ADDR_BITS).as_usize()]
+    }
+
+    fn store(&mut self, addr: Address, value: u8) {
+        self.0[addr.alias(RAM_ADDR_BITS).as_usize()] = value;
+    }
+}
+
 /// Memory map of the NES's CPU address space, laid out as folows:
 ///
 ///   0x0000 - 0x07FF: RAM (2kB)
@@ -44,7 +66,7 @@ impl Bus for [u8; 0x10000] {
 ///   0x4020 - 0xFFFF: Cartridge address space (PRG ROM, PRG RAM, mappers)
 ///
 pub struct Memory {
-    ram: [u8; RAM_SIZE],
+    ram: Ram,
     ppu: Ppu,
     rom: Rom,
 }
@@ -52,7 +74,7 @@ pub struct Memory {
 impl Memory {
     pub fn new(rom: Rom) -> Self {
         Self {
-            ram: [0; RAM_SIZE],
+            ram: Ram::new(),
             ppu: Ppu::new(),
             rom: rom,
         }
@@ -62,10 +84,8 @@ impl Memory {
 impl Bus for Memory {
     fn load(&self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
-            // Read from RAM.
-            self.ram[addr.alias(RAM_ADDR_BITS).as_usize()]
+            self.ram.load(addr)
         } else if addr < IO_REG_START {
-            // Read from a PPU register.
             self.ppu.load(addr)
         } else if addr < CART_SPACE_START {
             // Read from an IO register.
@@ -78,10 +98,8 @@ impl Bus for Memory {
 
     fn store(&mut self, addr: Address, value: u8) {
         if addr < PPU_REG_START {
-            // Write to RAM.
-            self.ram[addr.alias(RAM_ADDR_BITS).as_usize()] = value;
+            self.ram.store(addr, value);
         } else if addr < IO_REG_START {
-            // Write to a PPU register.
             self.ppu.store(addr, value);
         } else if addr < CART_SPACE_START {
             // Write to an IO register.

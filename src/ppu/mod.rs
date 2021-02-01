@@ -1,3 +1,4 @@
+use crate::cart::Cartridge;
 use crate::mem::{Address, Bus};
 
 const VRAM_SIZE: usize = 2048;
@@ -85,6 +86,8 @@ impl Ppu {
             palette: [0; 32],
         }
     }
+
+    pub fn tick(&self, _cart: &mut Cartridge) {}
 }
 
 impl Bus for Ppu {

@@ -2,8 +2,8 @@ pub use address::Address;
 
 mod address;
 
+use crate::cart::Cartridge;
 use crate::ppu::Ppu;
-use crate::rom::Rom;
 
 const RAM_SIZE: usize = 2048;
 const RAM_ADDR_BITS: u8 = 11;
@@ -40,7 +40,7 @@ impl Bus for [u8; 0x10000] {
 pub struct Ram([u8; RAM_SIZE]);
 
 impl Ram {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Ram([0; RAM_SIZE])
     }
 }
@@ -65,23 +65,27 @@ impl Bus for Ram {
 ///   0x4018 - 0x401F: Test mode registers (disabled on production NES)
 ///   0x4020 - 0xFFFF: Cartridge address space (PRG ROM, PRG RAM, mappers)
 ///
-pub struct Memory {
-    ram: Ram,
-    ppu: Ppu,
-    rom: Rom,
+/// Mirroring is accomplished by masking off the required number of high order
+/// bits of the requested address; this emulates the incomplete decoding of
+/// address lines by the NES hardware.
+///
+/// This struct is intended to be used to temporarily borrow all of the NES's
+/// components to pass to the CPU. The details of the actual memory mapping
+/// are abstracted away; from the CPU's perspective, this is just one big
+/// address space.
+pub struct Memory<'a> {
+    ram: &'a mut Ram,
+    ppu: &'a mut Ppu,
+    cart: &'a mut Cartridge,
 }
 
-impl Memory {
-    pub fn new(rom: Rom) -> Self {
-        Self {
-            ram: Ram::new(),
-            ppu: Ppu::new(),
-            rom: rom,
-        }
+impl<'a> Memory<'a> {
+    pub fn new(ram: &'a mut Ram, ppu: &'a mut Ppu, cart: &'a mut Cartridge) -> Self {
+        Self { ram, ppu, cart }
     }
 }
 
-impl Bus for Memory {
+impl<'a> Bus for Memory<'a> {
     fn load(&self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
             self.ram.load(addr)
@@ -91,8 +95,7 @@ impl Bus for Memory {
             // Read from an IO register.
             unimplemented!()
         } else {
-            // Read from the cartridge via its mapper.
-            unimplemented!()
+            self.cart.load(addr)
         }
     }
 
@@ -105,8 +108,7 @@ impl Bus for Memory {
             // Write to an IO register.
             unimplemented!()
         } else {
-            // Write to the cartridge via its mapper.
-            unimplemented!()
+            self.cart.store(addr, value)
         }
     }
 }

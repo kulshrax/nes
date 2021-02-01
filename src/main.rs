@@ -52,7 +52,7 @@ fn main() -> Result<()> {
 fn cmd_run(args: RunArgs) -> Result<()> {
     log::info!("Loading ROM: {:?}", &args.rom);
     let rom = Rom::load(&args.rom)?;
-    let nes = Nes::new(rom);
+    let mut nes = Nes::new(rom);
     nes.start()
 }
 

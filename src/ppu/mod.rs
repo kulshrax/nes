@@ -17,6 +17,12 @@ struct Registers {
     scroll: u8,
     addr: u8,
     data: u8,
+
+    // Contains the most recently written or read value from any register. This
+    // is used to mimic the behavior of the data bus between the NES's CPU and
+    // PPU, which retains the value of the most recent read or write. Attempts
+    // to read from a write-only register will return this retained value.
+    cpu_bus_latch: u8,
 }
 
 impl Registers {
@@ -30,17 +36,18 @@ impl Registers {
 /// meaning that the registers are mirrored every 8-bits.
 impl Bus for Registers {
     fn load(&mut self, addr: Address) -> u8 {
-        match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            0 => self.ctrl,
-            1 => self.mask,
+        let value = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
             2 => self.status,
-            3 => self.oam_addr,
             4 => self.oam_data,
-            5 => self.scroll,
-            6 => self.addr,
             7 => self.data,
-            _ => unreachable!(),
-        }
+            // All other registers are write-only, and therefore attempts to
+            // read their values will just return whatever value is presently
+            // on the data bus (i.e., whatever value was most recently read or
+            // written).
+            _ => self.cpu_bus_latch,
+        };
+        self.cpu_bus_latch = value;
+        value
     }
 
     fn store(&mut self, addr: Address, value: u8) {
@@ -56,6 +63,7 @@ impl Bus for Registers {
             _ => unreachable!(),
         };
         *reg = value;
+        self.cpu_bus_latch = value;
     }
 }
 

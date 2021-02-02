@@ -13,7 +13,6 @@ struct Registers {
     mask: u8,
     status: u8,
     oam_addr: u8,
-    oam_data: u8,
     scroll: [Option<u8>; 2],
     addr: [Option<u8>; 2],
 
@@ -22,60 +21,6 @@ struct Registers {
     // PPU, which retains the value of the most recent read or write. Attempts
     // to read from a write-only register will return this retained value.
     cpu_bus_latch: u8,
-}
-
-impl Registers {
-    fn new() -> Self {
-        Default::default()
-    }
-}
-
-/// The CPU can interact with the PPU via its registers, which are mapped into
-/// the CPU's address space. Only the last 3 bits of the address are decoded,
-/// meaning that the registers are mirrored every 8-bits.
-impl Bus for Registers {
-    fn load(&mut self, addr: Address) -> u8 {
-        let value = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            2 => {
-                // Reading the status register clears the address and scroll
-                // registers.
-                self.scroll = [None, None];
-                self.addr = [None, None];
-                self.status
-            }
-            4 => self.oam_data,
-            7 => {
-                // TODO: Load data from address.
-                let _addr = to_address(&self.addr);
-                0
-            }
-            // All other registers are write-only, and therefore attempts to
-            // read their values will just return whatever value is presently
-            // on the data bus (i.e., whatever value was most recently read or
-            // written).
-            _ => self.cpu_bus_latch,
-        };
-        self.cpu_bus_latch = value;
-        value
-    }
-
-    fn store(&mut self, addr: Address, value: u8) {
-        self.cpu_bus_latch = value;
-        let reg = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            0 => self.ctrl = value,
-            1 => self.mask = value,
-            2 => {} // Status register is read-only.
-            3 => self.oam_addr = value,
-            4 => self.oam_data = value,
-            5 => double_write(&mut self.scroll, value),
-            6 => double_write(&mut self.scroll, value),
-            7 => {
-                // TODO: Write value to VRAM.
-                let _addr = to_address(&self.addr);
-            }
-            _ => unreachable!(),
-        };
-    }
 }
 
 /// Trait representing the PPU's address bus, which is used to access the PPU's
@@ -99,7 +44,7 @@ pub struct Ppu {
 impl Ppu {
     pub fn new() -> Self {
         Self {
-            registers: Registers::new(),
+            registers: Registers::default(),
             vram: Vram::new(),
             oam: [0; 256],
             palette: [0; 32],
@@ -109,13 +54,51 @@ impl Ppu {
     pub fn tick(&self, _cart: &mut Cartridge) {}
 }
 
+/// The CPU can interact with the PPU via its registers, which are mapped into
+/// the CPU's address space. Only the last 3 bits of the address are decoded,
+/// meaning that the registers are mirrored every 8-bits.
 impl Bus for Ppu {
     fn load(&mut self, addr: Address) -> u8 {
-        self.registers.load(addr)
+        let value = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
+            2 => {
+                // Reading the status register clears the address and scroll
+                // registers.
+                self.registers.scroll = [None, None];
+                self.registers.addr = [None, None];
+                self.registers.status
+            }
+            4 => self.oam[self.registers.oam_addr as usize],
+            7 => {
+                // TODO: Load data from address.
+                let _addr = to_address(&self.registers.addr);
+                0
+            }
+            // All other registers are write-only, and therefore attempts to
+            // read their values will just return whatever value is presently
+            // on the data bus (i.e., whatever value was most recently read or
+            // written).
+            _ => self.registers.cpu_bus_latch,
+        };
+        self.registers.cpu_bus_latch = value;
+        value
     }
 
     fn store(&mut self, addr: Address, value: u8) {
-        self.registers.store(addr, value);
+        self.registers.cpu_bus_latch = value;
+        match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
+            0 => self.registers.ctrl = value,
+            1 => self.registers.mask = value,
+            2 => {} // Status register is read-only.
+            3 => self.registers.oam_addr = value,
+            4 => self.oam[self.registers.oam_addr as usize] = value,
+            5 => double_write(&mut self.registers.scroll, value),
+            6 => double_write(&mut self.registers.scroll, value),
+            7 => {
+                // TODO: Write value to VRAM.
+                let _addr = to_address(&self.registers.addr);
+            }
+            _ => unreachable!(),
+        };
     }
 }
 

@@ -14,8 +14,8 @@ struct Registers {
     status: u8,
     oam_addr: u8,
     oam_data: u8,
-    scroll: u8,
-    addr: u8,
+    scroll: [Option<u8>; 2],
+    addr: [Option<u8>; 2],
     data: u8,
 
     // Contains the most recently written or read value from any register. This
@@ -37,7 +37,13 @@ impl Registers {
 impl Bus for Registers {
     fn load(&mut self, addr: Address) -> u8 {
         let value = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            2 => self.status,
+            2 => {
+                // Reading the status register clears the address and scroll
+                // registers.
+                self.scroll = [None, None];
+                self.addr = [None, None];
+                self.status
+            }
             4 => self.oam_data,
             7 => self.data,
             // All other registers are write-only, and therefore attempts to
@@ -51,19 +57,18 @@ impl Bus for Registers {
     }
 
     fn store(&mut self, addr: Address, value: u8) {
+        self.cpu_bus_latch = value;
         let reg = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            0 => &mut self.ctrl,
-            1 => &mut self.mask,
-            2 => &mut self.status,
-            3 => &mut self.oam_addr,
-            4 => &mut self.oam_data,
-            5 => &mut self.scroll,
-            6 => &mut self.addr,
-            7 => &mut self.data,
+            0 => self.ctrl = value,
+            1 => self.mask = value,
+            2 => {} // Status register is read-only.
+            3 => self.oam_addr = value,
+            4 => self.oam_data = value,
+            5 => double_write(&mut self.scroll, value),
+            6 => double_write(&mut self.scroll, value),
+            7 => self.data = value,
             _ => unreachable!(),
         };
-        *reg = value;
-        self.cpu_bus_latch = value;
     }
 }
 
@@ -128,4 +133,15 @@ impl Vram {
     pub fn inner_mut(&mut self) -> &mut [u8; VRAM_SIZE] {
         &mut self.0
     }
+}
+
+// Emulate the behavior of the PPUADDR and PPUSCROLL registers, which require
+// the CPU to write 2 bytes. Since each register is only mapped to a single
+// byte of the CPU's address space, the CPU must perform 2 writes in succession.
+fn double_write(reg: &mut [Option<u8>; 2], value: u8) {
+    *reg = match *reg {
+        [None, None] => [Some(value), None],
+        [Some(first), None] => [Some(first), Some(value)],
+        _ => return,
+    };
 }

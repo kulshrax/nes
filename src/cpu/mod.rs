@@ -157,7 +157,7 @@ impl Cpu {
 
     /// Reset the CPU by disabling interrupts and jumping to the location
     /// specified by the initialization vector.
-    pub fn reset(&mut self, memory: &dyn Bus) {
+    pub fn reset(&mut self, memory: &mut dyn Bus) {
         self.registers.p.insert(Flags::INTERRUPT_DISABLE);
         let low = memory.load(Address::from(RESET_VECTOR[0]));
         let high = memory.load(Address::from(RESET_VECTOR[1]));

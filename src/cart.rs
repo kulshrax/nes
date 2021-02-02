@@ -18,7 +18,7 @@ impl Cartridge {
 }
 
 impl Bus for Cartridge {
-    fn load(&self, addr: Address) -> u8 {
+    fn load(&mut self, addr: Address) -> u8 {
         self.mapper.cpu_load(&self.rom, addr)
     }
 
@@ -28,7 +28,7 @@ impl Bus for Cartridge {
 }
 
 impl PpuBus for Cartridge {
-    fn load(&self, vram: &Vram, addr: Address) -> u8 {
+    fn load(&mut self, vram: &Vram, addr: Address) -> u8 {
         self.mapper.ppu_load(&self.rom, vram, addr)
     }
 

@@ -29,7 +29,7 @@ impl Registers {
 /// the CPU's address space. Only the last 3 bits of the address are decoded,
 /// meaning that the registers are mirrored every 8-bits.
 impl Bus for Registers {
-    fn load(&self, addr: Address) -> u8 {
+    fn load(&mut self, addr: Address) -> u8 {
         match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
             0 => self.ctrl,
             1 => self.mask,
@@ -65,7 +65,7 @@ impl Bus for Registers {
 /// PPU's VRAM is passed into these methods (so that the mapper can choose to
 /// map a read or write to VRAM).
 pub trait PpuBus {
-    fn load(&self, vram: &Vram, addr: Address) -> u8;
+    fn load(&mut self, vram: &Vram, addr: Address) -> u8;
 
     fn store(&mut self, vram: &mut Vram, addr: Address, value: u8);
 }
@@ -91,7 +91,7 @@ impl Ppu {
 }
 
 impl Bus for Ppu {
-    fn load(&self, addr: Address) -> u8 {
+    fn load(&mut self, addr: Address) -> u8 {
         self.registers.load(addr)
     }
 

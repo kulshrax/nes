@@ -15,16 +15,18 @@ const CART_SPACE_START: Address = Address(0x4020);
 /// Trait representing the CPU's address bus. The actual destination of loads
 /// and stores are mapped by hardware to several possible locations, including
 /// the NES's RAM, the PPU, various IO registers, or the cartridge, which in
-/// turn can arbitrarily map the memory access to its contents.
+/// turn can arbitrarily map the memory access to its contents. Note that even
+/// loads take `&mut self` since loading from a device could potentially change
+/// its internal state.
 pub trait Bus {
-    fn load(&self, addr: Address) -> u8;
+    fn load(&mut self, addr: Address) -> u8;
 
     fn store(&mut self, addr: Address, value: u8);
 }
 
 /// It can be useful to treat the 16-bit address space as an array for testing.
 impl Bus for [u8; 0x10000] {
-    fn load(&self, addr: Address) -> u8 {
+    fn load(&mut self, addr: Address) -> u8 {
         self[addr.as_usize()]
     }
 
@@ -46,7 +48,7 @@ impl Ram {
 }
 
 impl Bus for Ram {
-    fn load(&self, addr: Address) -> u8 {
+    fn load(&mut self, addr: Address) -> u8 {
         self.0[addr.alias(RAM_ADDR_BITS).as_usize()]
     }
 
@@ -86,7 +88,7 @@ impl<'a> Memory<'a> {
 }
 
 impl<'a> Bus for Memory<'a> {
-    fn load(&self, addr: Address) -> u8 {
+    fn load(&mut self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
             self.ram.load(addr)
         } else if addr < IO_REG_START {

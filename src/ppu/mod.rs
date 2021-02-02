@@ -16,7 +16,6 @@ struct Registers {
     oam_data: u8,
     scroll: [Option<u8>; 2],
     addr: [Option<u8>; 2],
-    data: u8,
 
     // Contains the most recently written or read value from any register. This
     // is used to mimic the behavior of the data bus between the NES's CPU and
@@ -45,7 +44,11 @@ impl Bus for Registers {
                 self.status
             }
             4 => self.oam_data,
-            7 => self.data,
+            7 => {
+                // TODO: Load data from address.
+                let _addr = to_address(&self.addr);
+                0
+            }
             // All other registers are write-only, and therefore attempts to
             // read their values will just return whatever value is presently
             // on the data bus (i.e., whatever value was most recently read or
@@ -66,7 +69,10 @@ impl Bus for Registers {
             4 => self.oam_data = value,
             5 => double_write(&mut self.scroll, value),
             6 => double_write(&mut self.scroll, value),
-            7 => self.data = value,
+            7 => {
+                // TODO: Write value to VRAM.
+                let _addr = to_address(&self.addr);
+            }
             _ => unreachable!(),
         };
     }
@@ -144,4 +150,11 @@ fn double_write(reg: &mut [Option<u8>; 2], value: u8) {
         [Some(first), None] => [Some(first), Some(value)],
         _ => return,
     };
+}
+
+/// Intepret the contents of the PPUADDR register.
+fn to_address(addr: &[Option<u8>; 2]) -> Address {
+    let high = addr[0].unwrap_or(0);
+    let low = addr[1].unwrap_or(0);
+    Address::from([low, high])
 }

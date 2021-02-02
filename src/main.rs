@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 use std::{fs::File, io::prelude::*, path::PathBuf, process::exit};
 
 use anyhow::Result;

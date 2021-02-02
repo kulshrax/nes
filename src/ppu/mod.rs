@@ -36,18 +36,18 @@ pub trait PpuBus {
 
 pub struct Ppu {
     registers: Registers,
-    vram: Vram,
+    _vram: Vram,
     oam: [u8; 256],
-    palette: [u8; 32],
+    _palette: [u8; 32],
 }
 
 impl Ppu {
     pub fn new() -> Self {
         Self {
             registers: Registers::default(),
-            vram: Vram::new(),
+            _vram: Vram::new(),
             oam: [0; 256],
-            palette: [0; 32],
+            _palette: [0; 32],
         }
     }
 
@@ -113,14 +113,6 @@ pub struct Vram([u8; VRAM_SIZE]);
 impl Vram {
     fn new() -> Self {
         Vram([0; VRAM_SIZE])
-    }
-
-    pub fn inner(&self) -> &[u8; VRAM_SIZE] {
-        &self.0
-    }
-
-    pub fn inner_mut(&mut self) -> &mut [u8; VRAM_SIZE] {
-        &mut self.0
     }
 }
 

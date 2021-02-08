@@ -1,5 +1,5 @@
 use crate::cpu::Cpu;
-use crate::mapper::{init_mappers, CpuMapper, PpuMapper};
+use crate::mapper::{self, CpuMapper, PpuMapper};
 use crate::mem::{Memory, Ram};
 use crate::ppu::Ppu;
 use crate::rom::Rom;
@@ -15,7 +15,7 @@ pub struct Nes {
 
 impl Nes {
     pub fn new(rom: Rom) -> Self {
-        let (mapper, ppu_mapper) = init_mappers(rom);
+        let (mapper, ppu_mapper) = mapper::init(rom);
         Self {
             cpu: Cpu::new(),
             ram: Ram::new(),

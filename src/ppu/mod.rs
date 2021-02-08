@@ -6,6 +6,34 @@ const VRAM_SIZE: usize = 2048;
 // to determine which register to select.
 const PPU_REG_ADDR_BITS: u8 = 3;
 
+enum PpuRegister {
+    Ctrl,
+    Mask,
+    Status,
+    OamAddr,
+    OamData,
+    Scroll,
+    Addr,
+    Data,
+}
+
+impl From<Address> for PpuRegister {
+    fn from(addr: Address) -> Self {
+        use PpuRegister::*;
+        match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
+            0 => Ctrl,
+            1 => Mask,
+            2 => Status,
+            3 => OamAddr,
+            4 => OamData,
+            5 => Scroll,
+            6 => Addr,
+            7 => Data,
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(Default)]
 struct Registers {
     ctrl: u8,
@@ -60,16 +88,18 @@ impl<M> Ppu<M> {
 /// meaning that the registers are mirrored every 8-bits.
 impl<M: PpuBus> Bus for Ppu<M> {
     fn load(&mut self, addr: Address) -> u8 {
-        let value = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            2 => {
+        use PpuRegister::*;
+
+        let value = match addr.into() {
+            Status => {
                 // Reading the status register clears the address and scroll
                 // registers.
                 self.registers.scroll = [None, None];
                 self.registers.addr = [None, None];
                 self.registers.status
             }
-            4 => self.oam[self.registers.oam_addr as usize],
-            7 => {
+            OamData => self.oam[self.registers.oam_addr as usize],
+            Data => {
                 // Read from PPU address space via mapper.
                 let addr = to_address(&self.registers.addr);
                 self.mapper.ppu_load(&self.vram, addr)
@@ -80,26 +110,29 @@ impl<M: PpuBus> Bus for Ppu<M> {
             // written).
             _ => self.registers.cpu_bus_latch,
         };
+
         self.registers.cpu_bus_latch = value;
+
         value
     }
 
     fn store(&mut self, addr: Address, value: u8) {
+        use PpuRegister::*;
+
         self.registers.cpu_bus_latch = value;
-        match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
-            0 => self.registers.ctrl = value,
-            1 => self.registers.mask = value,
-            2 => {} // Status register is read-only.
-            3 => self.registers.oam_addr = value,
-            4 => self.oam[self.registers.oam_addr as usize] = value,
-            5 => double_write(&mut self.registers.scroll, value),
-            6 => double_write(&mut self.registers.scroll, value),
-            7 => {
+        match addr.into() {
+            Ctrl => self.registers.ctrl = value,
+            Mask => self.registers.mask = value,
+            Status => {} // Status register is read-only.
+            OamAddr => self.registers.oam_addr = value,
+            OamData => self.oam[self.registers.oam_addr as usize] = value,
+            Scroll => double_write(&mut self.registers.scroll, value),
+            Addr => double_write(&mut self.registers.addr, value),
+            Data => {
                 // Write to PPU address space via mapper.
                 let addr = to_address(&self.registers.addr);
                 self.mapper.ppu_store(&mut self.vram, addr, value);
             }
-            _ => unreachable!(),
         };
     }
 }

@@ -1,6 +1,11 @@
 use crate::mem::{Address, Bus};
 
-const VRAM_SIZE: usize = 2048;
+pub const VRAM_SIZE: usize = 2048;
+
+pub const NAMETABLE_BASE_ADDR: Address = Address(0x2000);
+
+pub const PALETTE_BASE_ADDR: Address = Address(0x3F00);
+pub const PALETTE_ADDR_BITS: u8 = 5;
 
 // Since there are only 8 PPU registers, only the last 3 address bits are used
 // to determine which register to select.
@@ -65,7 +70,7 @@ pub struct Ppu<M> {
     registers: Registers,
     vram: Vram,
     oam: [u8; 256],
-    _palette: [u8; 32],
+    palette: [u8; 32],
     mapper: M,
 }
 
@@ -75,7 +80,7 @@ impl<M> Ppu<M> {
             registers: Registers::default(),
             vram: Vram::new(),
             oam: [0; 256],
-            _palette: [0; 32],
+            palette: [0; 32],
             mapper,
         }
     }
@@ -100,9 +105,14 @@ impl<M: PpuBus> Bus for Ppu<M> {
             }
             OamData => self.oam[self.registers.oam_addr as usize],
             Data => {
-                // Read from PPU address space via mapper.
                 let addr = read_ppuaddr(&self.registers.addr);
-                self.mapper.ppu_load(&self.vram, addr)
+                if addr < PALETTE_BASE_ADDR {
+                    // Read from PPU address space via mapper.
+                    self.mapper.ppu_load(&self.vram, addr)
+                } else {
+                    let i = addr.alias(PALETTE_ADDR_BITS).as_usize();
+                    self.palette[i]
+                }
             }
             // All other registers are write-only, and therefore attempts to
             // read their values will just return whatever value is presently
@@ -129,9 +139,14 @@ impl<M: PpuBus> Bus for Ppu<M> {
             Scroll => double_write(&mut self.registers.scroll, value),
             Addr => double_write(&mut self.registers.addr, value),
             Data => {
-                // Write to PPU address space via mapper.
                 let addr = read_ppuaddr(&self.registers.addr);
-                self.mapper.ppu_store(&mut self.vram, addr, value);
+                if addr < PALETTE_BASE_ADDR {
+                    // Write to PPU address space via mapper.
+                    self.mapper.ppu_store(&mut self.vram, addr, value);
+                } else {
+                    let i = addr.alias(PALETTE_ADDR_BITS).as_usize();
+                    self.palette[i] = value;
+                }
             }
         };
     }
@@ -143,7 +158,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
 /// by mapping the remainder of the VRAM address range to the cartridge itself
 /// (which presumably has additional RAM chips). Otherwise, the contents of VRAM
 /// are mirrored to fill up the available address range for nametables.
-pub struct Vram([u8; VRAM_SIZE]);
+pub struct Vram(pub [u8; VRAM_SIZE]);
 
 impl Vram {
     fn new() -> Self {

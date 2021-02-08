@@ -1,5 +1,5 @@
-use crate::cart::Cartridge;
 use crate::cpu::Cpu;
+use crate::mapper::{init_mappers, CpuMapper, PpuMapper};
 use crate::mem::{Memory, Ram};
 use crate::ppu::Ppu;
 use crate::rom::Rom;
@@ -9,28 +9,32 @@ use anyhow::Result;
 pub struct Nes {
     cpu: Cpu,
     ram: Ram,
-    ppu: Ppu,
-    cart: Cartridge,
+    ppu: Ppu<PpuMapper>,
+    mapper: CpuMapper,
 }
 
 impl Nes {
     pub fn new(rom: Rom) -> Self {
+        let (mapper, ppu_mapper) = init_mappers(rom);
         Self {
             cpu: Cpu::new(),
             ram: Ram::new(),
-            ppu: Ppu::new(),
-            cart: Cartridge::new(rom),
+            ppu: Ppu::with_mapper(ppu_mapper),
+            mapper,
         }
     }
 
     pub fn start(&mut self) -> Result<()> {
         loop {
-            let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.cart);
+            // Create a view of the CPU's addres space, including all memory-mapped devices.
+            let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+
+            // Run the CPU.
             self.cpu.tick(&mut memory)?;
 
-            // The PPU's clock runs 3x faster than the CPU's.
+            // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
             for _ in 0..3 {
-                self.ppu.tick(&mut self.cart);
+                self.ppu.tick();
             }
         }
     }

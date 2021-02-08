@@ -1,4 +1,3 @@
-use crate::cart::Cartridge;
 use crate::mem::{Address, Bus};
 
 const VRAM_SIZE: usize = 2048;
@@ -29,35 +28,37 @@ struct Registers {
 /// PPU's VRAM is passed into these methods (so that the mapper can choose to
 /// map a read or write to VRAM).
 pub trait PpuBus {
-    fn load(&mut self, vram: &Vram, addr: Address) -> u8;
+    fn ppu_load(&mut self, vram: &Vram, addr: Address) -> u8;
 
-    fn store(&mut self, vram: &mut Vram, addr: Address, value: u8);
+    fn ppu_store(&mut self, vram: &mut Vram, addr: Address, value: u8);
 }
 
-pub struct Ppu {
+pub struct Ppu<M> {
     registers: Registers,
-    _vram: Vram,
+    vram: Vram,
     oam: [u8; 256],
     _palette: [u8; 32],
+    mapper: M,
 }
 
-impl Ppu {
-    pub fn new() -> Self {
+impl<M> Ppu<M> {
+    pub fn with_mapper(mapper: M) -> Self {
         Self {
             registers: Registers::default(),
-            _vram: Vram::new(),
+            vram: Vram::new(),
             oam: [0; 256],
             _palette: [0; 32],
+            mapper,
         }
     }
 
-    pub fn tick(&self, _cart: &mut Cartridge) {}
+    pub fn tick(&self) {}
 }
 
 /// The CPU can interact with the PPU via its registers, which are mapped into
 /// the CPU's address space. Only the last 3 bits of the address are decoded,
 /// meaning that the registers are mirrored every 8-bits.
-impl Bus for Ppu {
+impl<M: PpuBus> Bus for Ppu<M> {
     fn load(&mut self, addr: Address) -> u8 {
         let value = match addr.alias(PPU_REG_ADDR_BITS).as_usize() {
             2 => {
@@ -69,9 +70,9 @@ impl Bus for Ppu {
             }
             4 => self.oam[self.registers.oam_addr as usize],
             7 => {
-                // TODO: Load data from address.
-                let _addr = to_address(&self.registers.addr);
-                0
+                // Read from PPU address space via mapper.
+                let addr = to_address(&self.registers.addr);
+                self.mapper.ppu_load(&self.vram, addr)
             }
             // All other registers are write-only, and therefore attempts to
             // read their values will just return whatever value is presently
@@ -94,8 +95,9 @@ impl Bus for Ppu {
             5 => double_write(&mut self.registers.scroll, value),
             6 => double_write(&mut self.registers.scroll, value),
             7 => {
-                // TODO: Write value to VRAM.
-                let _addr = to_address(&self.registers.addr);
+                // Write to PPU address space via mapper.
+                let addr = to_address(&self.registers.addr);
+                self.mapper.ppu_store(&mut self.vram, addr, value);
             }
             _ => unreachable!(),
         };

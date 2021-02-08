@@ -2,8 +2,7 @@ pub use address::Address;
 
 mod address;
 
-use crate::cart::Cartridge;
-use crate::ppu::Ppu;
+use crate::ppu::{Ppu, PpuBus};
 
 const RAM_SIZE: usize = 2048;
 const RAM_ADDR_BITS: u8 = 11;
@@ -75,19 +74,19 @@ impl Bus for Ram {
 /// components to pass to the CPU. The details of the actual memory mapping
 /// are abstracted away; from the CPU's perspective, this is just one big
 /// address space.
-pub struct Memory<'a> {
+pub struct Memory<'a, M, P> {
     ram: &'a mut Ram,
-    ppu: &'a mut Ppu,
-    cart: &'a mut Cartridge,
+    ppu: &'a mut Ppu<P>,
+    mapper: &'a mut M,
 }
 
-impl<'a> Memory<'a> {
-    pub fn new(ram: &'a mut Ram, ppu: &'a mut Ppu, cart: &'a mut Cartridge) -> Self {
-        Self { ram, ppu, cart }
+impl<'a, M, P> Memory<'a, M, P> {
+    pub fn new(ram: &'a mut Ram, ppu: &'a mut Ppu<P>, mapper: &'a mut M) -> Self {
+        Self { ram, ppu, mapper }
     }
 }
 
-impl<'a> Bus for Memory<'a> {
+impl<'a, M: Bus, P: PpuBus> Bus for Memory<'a, M, P> {
     fn load(&mut self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
             self.ram.load(addr)
@@ -97,7 +96,7 @@ impl<'a> Bus for Memory<'a> {
             // Read from an IO register.
             unimplemented!()
         } else {
-            self.cart.load(addr)
+            self.mapper.load(addr)
         }
     }
 
@@ -110,7 +109,7 @@ impl<'a> Bus for Memory<'a> {
             // Write to an IO register.
             unimplemented!()
         } else {
-            self.cart.store(addr, value)
+            self.mapper.store(addr, value)
         }
     }
 }

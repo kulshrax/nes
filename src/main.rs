@@ -7,7 +7,6 @@ use env_logger;
 use log;
 use structopt::StructOpt;
 
-mod cart;
 mod cpu;
 mod mapper;
 mod mem;

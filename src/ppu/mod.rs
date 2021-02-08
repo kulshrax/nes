@@ -47,7 +47,7 @@ struct Registers {
     // is used to mimic the behavior of the data bus between the NES's CPU and
     // PPU, which retains the value of the most recent read or write. Attempts
     // to read from a write-only register will return this retained value.
-    cpu_bus_latch: u8,
+    most_recent_value: u8,
 }
 
 /// Trait representing the PPU's address bus, which is used to access the PPU's
@@ -101,17 +101,17 @@ impl<M: PpuBus> Bus for Ppu<M> {
             OamData => self.oam[self.registers.oam_addr as usize],
             Data => {
                 // Read from PPU address space via mapper.
-                let addr = to_address(&self.registers.addr);
+                let addr = read_ppuaddr(&self.registers.addr);
                 self.mapper.ppu_load(&self.vram, addr)
             }
             // All other registers are write-only, and therefore attempts to
             // read their values will just return whatever value is presently
             // on the data bus (i.e., whatever value was most recently read or
             // written).
-            _ => self.registers.cpu_bus_latch,
+            _ => self.registers.most_recent_value,
         };
 
-        self.registers.cpu_bus_latch = value;
+        self.registers.most_recent_value = value;
 
         value
     }
@@ -119,7 +119,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
     fn store(&mut self, addr: Address, value: u8) {
         use PpuRegister::*;
 
-        self.registers.cpu_bus_latch = value;
+        self.registers.most_recent_value = value;
         match addr.into() {
             Ctrl => self.registers.ctrl = value,
             Mask => self.registers.mask = value,
@@ -130,7 +130,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
             Addr => double_write(&mut self.registers.addr, value),
             Data => {
                 // Write to PPU address space via mapper.
-                let addr = to_address(&self.registers.addr);
+                let addr = read_ppuaddr(&self.registers.addr);
                 self.mapper.ppu_store(&mut self.vram, addr, value);
             }
         };
@@ -163,7 +163,7 @@ fn double_write(reg: &mut [Option<u8>; 2], value: u8) {
 }
 
 /// Intepret the contents of the PPUADDR register.
-fn to_address(addr: &[Option<u8>; 2]) -> Address {
+fn read_ppuaddr(addr: &[Option<u8>; 2]) -> Address {
     let high = addr[0].unwrap_or(0);
     let low = addr[1].unwrap_or(0);
     Address::from([low, high])

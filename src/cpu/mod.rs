@@ -47,11 +47,37 @@ const NMI_VECTOR: [u16; 2] = [0xFFFA, 0xFFFB];
 const RESET_VECTOR: [u16; 2] = [0xFFFC, 0xFFFD];
 const IRQ_VECTOR: [u16; 2] = [0xFFFE, 0xFFFF];
 
+/// The number of cycles that each machine operation takes, indexed by opcode.
+///
+/// This was copied from the source code of [sprocketnes], which in turn
+/// copied it from FCEU.
+///
+/// [sprocketnes]: https://github.com/pcwalton/sprocketnes
+#[rustfmt::skip]
+static CYCLE_TABLE: [u8; 256] = [
+    /*0x00*/ 7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
+    /*0x10*/ 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+    /*0x20*/ 6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
+    /*0x30*/ 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+    /*0x40*/ 6, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
+    /*0x50*/ 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+    /*0x60*/ 6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
+    /*0x70*/ 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+    /*0x80*/ 2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+    /*0x90*/ 2, 6, 2, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
+    /*0xA0*/ 2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+    /*0xB0*/ 2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
+    /*0xC0*/ 2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+    /*0xD0*/ 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+    /*0xE0*/ 2, 6, 3, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+    /*0xF0*/ 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+];
+
 /// Emulated MOS 6502 CPU.
 pub struct Cpu {
     registers: Registers,
     irq_pending: bool,
-    cycles_remaining: usize,
+    cycles_remaining: u8,
 }
 
 impl Cpu {
@@ -107,7 +133,7 @@ impl Cpu {
 
     /// Fetch and execute a single instruction. Returns the the number of clock
     /// cycles taken to execute the instruction.
-    pub fn step(&mut self, memory: &mut dyn Bus) -> Result<usize> {
+    pub fn step(&mut self, memory: &mut dyn Bus) -> Result<u8> {
         // Save starting program counter.
         let pc = self.registers.pc;
 
@@ -119,8 +145,8 @@ impl Cpu {
             self.irq(memory);
         }
 
-        let op = Instruction::fetch(memory, &mut self.registers.pc)?;
-        self.exec(memory, op);
+        let (instruction, opcode) = Instruction::fetch(memory, &mut self.registers.pc)?;
+        self.exec(memory, instruction);
         log::trace!("Registers: {}", &self.registers);
 
         // Crash if we detect an infinite loop. This is useful for test ROMs
@@ -134,7 +160,7 @@ impl Cpu {
         }
 
         // TODO: Return the actual number of clock cycles for this instruction.
-        Ok(1)
+        Ok(CYCLE_TABLE[opcode as usize])
     }
 
     /// Drive the CPU with an external clock signal.

@@ -272,12 +272,13 @@ pub(super) enum Instruction {
 }
 
 impl Instruction {
-    /// Fetch and decode an instruction from memory at the address
-    /// of the given program counter. Instructions are 1 to 3 bytes
-    /// long: a 1-byte opcode optionally followed by a one or two byte
-    /// argument. This method will increment the program counter by
-    /// the appropriate amount after decoding the instruction.
-    pub(super) fn fetch(memory: &mut dyn Bus, pc: &mut Address) -> Result<Self> {
+    /// Fetch and decode an instruction from memory at the address of the given
+    /// program counter. Instructions are 1 to 3 bytes long: a 1-byte opcode
+    /// optionally followed by a one or two byte argument. This method will
+    /// increment the program counter by the appropriate amount after decoding
+    /// the instruction. The opcode will be returned alongside the decoded
+    /// instruction.
+    pub(super) fn fetch(memory: &mut dyn Bus, pc: &mut Address) -> Result<(Self, u8)> {
         use Instruction::*;
 
         let start_pc = *pc;
@@ -446,7 +447,7 @@ impl Instruction {
             instruction
         );
 
-        Ok(instruction)
+        Ok((instruction, opcode))
     }
 }
 

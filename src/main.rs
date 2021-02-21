@@ -1,4 +1,4 @@
-// #![deny(warnings)]
+#![deny(warnings)]
 
 use std::{fs::File, io::prelude::*, path::PathBuf, process::exit};
 
@@ -19,6 +19,7 @@ use crate::cpu::Cpu;
 use crate::mem::Address;
 use crate::nes::Nes;
 use crate::rom::Rom;
+use crate::ui::Ui;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nes", about = "A toy NES emulator")]
@@ -45,9 +46,6 @@ struct RunRawArgs {
 
 fn main() -> Result<()> {
     env_logger::init();
-
-    return ui::run();
-
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
         Command::RunRaw(args) => cmd_run_raw(args),
@@ -55,10 +53,12 @@ fn main() -> Result<()> {
 }
 
 fn cmd_run(args: RunArgs) -> Result<()> {
-    log::info!("Loading ROM: {:?}", &args.rom);
-    let rom = Rom::load(&args.rom)?;
-    let mut nes = Nes::new(rom);
-    nes.start()
+    ui::run(move |_ui: Ui| {
+        log::info!("Loading ROM: {:?}", &args.rom);
+        let rom = Rom::load(&args.rom)?;
+        let mut nes = Nes::new(rom);
+        nes.start()
+    })
 }
 
 fn cmd_run_raw(args: RunRawArgs) -> Result<()> {

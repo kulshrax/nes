@@ -2,20 +2,30 @@ use anyhow::Result;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
-    event::{Event, VirtualKeyCode},
+    event::Event,
     event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    window::{Window, WindowBuilder},
 };
 use winit_input_helper::WinitInputHelper;
 
-// Dimensions of the frame buffer written to by the emulated NES PPU.
-//
-// The actual displayed size will be scaled appropriately when the user resizes
-// the window.
 const LOGICAL_WIDTH: u32 = 256;
 const LOGICAL_HEIGHT: u32 = 240;
 
-pub fn run() -> Result<()> {
+pub struct Ui<'p, 'i> {
+    pub frame: &'p mut Pixels<Window>,
+    pub input: &'i WinitInputHelper,
+}
+
+impl<'p, 'i> Ui<'p, 'i> {
+    fn new(frame: &'p mut Pixels<Window>, input: &'i WinitInputHelper) -> Self {
+        Self { frame, input }
+    }
+}
+
+pub fn run<F>(mut callback: F) -> Result<()>
+where
+    F: FnMut(Ui) -> Result<()> + 'static,
+{
     log::info!("Starting UI");
 
     let event_loop = EventLoop::new();
@@ -46,7 +56,7 @@ pub fn run() -> Result<()> {
             return;
         }
 
-        if input.quit() || input.key_pressed(VirtualKeyCode::Escape) {
+        if input.quit() {
             log::info!("Exiting due to user request");
             *control_flow = ControlFlow::Exit;
             return;
@@ -54,6 +64,12 @@ pub fn run() -> Result<()> {
 
         if let Some(size) = input.window_resized() {
             pixels.resize(size.width, size.height);
+        };
+
+        if let Err(e) = callback(Ui::new(&mut pixels, &input)) {
+            log::error!("Exiting due to emulation error: {}", e);
+            *control_flow = ControlFlow::Exit;
+            return;
         }
 
         window.request_redraw();

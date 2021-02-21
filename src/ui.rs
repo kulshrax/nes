@@ -1,14 +1,19 @@
-use anyhow::{Context, Error, Result};
+use anyhow::Result;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
-    event::{Event, VirtualKeyCode, WindowEvent},
+    event::{Event, VirtualKeyCode},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
+use winit_input_helper::WinitInputHelper;
 
-const LOGICAL_WIDTH: u32 = 800;
-const LOGICAL_HEIGHT: u32 = 600;
+// Dimensions of the frame buffer written to by the emulated NES PPU.
+//
+// The actual displayed size will be scaled appropriately when the user resizes
+// the window.
+const LOGICAL_WIDTH: u32 = 256;
+const LOGICAL_HEIGHT: u32 = 240;
 
 pub fn run() -> Result<()> {
     log::info!("Starting UI");
@@ -26,26 +31,31 @@ pub fn run() -> Result<()> {
     let surface_texture = SurfaceTexture::new(width, height, &window);
     let mut pixels = Pixels::new(LOGICAL_WIDTH, LOGICAL_HEIGHT, surface_texture)?;
 
+    let mut input = WinitInputHelper::new();
+
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
-
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => {
-                log::info!("Closing window");
+        if let Event::RedrawRequested(_) = event {
+            if let Err(e) = pixels.render() {
+                log::error!("Exiting due to render error: {}", e);
                 *control_flow = ControlFlow::Exit;
+                return;
             }
-            Event::MainEventsCleared => {
-                pixels.render().unwrap();
-            }
-            Event::RedrawRequested(_) => {
-                pixels.render().unwrap();
-            }
-            _ => {}
         }
-    });
 
-    Ok(())
+        if !input.update(&event) {
+            return;
+        }
+
+        if input.quit() || input.key_pressed(VirtualKeyCode::Escape) {
+            log::info!("Exiting due to user request");
+            *control_flow = ControlFlow::Exit;
+            return;
+        }
+
+        if let Some(size) = input.window_resized() {
+            pixels.resize(size.width, size.height);
+        }
+
+        window.request_redraw();
+    });
 }

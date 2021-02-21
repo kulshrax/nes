@@ -1,4 +1,4 @@
-#![deny(warnings)]
+// #![deny(warnings)]
 
 use std::{fs::File, io::prelude::*, path::PathBuf, process::exit};
 
@@ -13,6 +13,7 @@ mod mem;
 mod nes;
 mod ppu;
 mod rom;
+mod ui;
 
 use crate::cpu::Cpu;
 use crate::mem::Address;
@@ -44,6 +45,9 @@ struct RunRawArgs {
 
 fn main() -> Result<()> {
     env_logger::init();
+
+    return ui::run();
+
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
         Command::RunRaw(args) => cmd_run_raw(args),

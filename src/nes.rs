@@ -1,10 +1,11 @@
+use anyhow::Result;
+
 use crate::cpu::Cpu;
 use crate::mapper::{self, CpuMapper, PpuMapper};
 use crate::mem::{Memory, Ram};
 use crate::ppu::Ppu;
 use crate::rom::Rom;
-
-use anyhow::Result;
+use crate::ui::Ui;
 
 pub struct Nes {
     cpu: Cpu,
@@ -24,18 +25,18 @@ impl Nes {
         }
     }
 
-    pub fn start(&mut self) -> Result<()> {
-        loop {
-            // Create a view of the CPU's addres space, including all memory-mapped devices.
-            let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+    pub fn poll(&mut self, ui: Ui) -> Result<()> {
+        // Create a view of the CPU's addres space, including all memory-mapped devices.
+        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
 
-            // Run the CPU.
-            self.cpu.tick(&mut memory)?;
+        // Run the CPU.
+        self.cpu.tick(&mut memory)?;
 
-            // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
-            for _ in 0..3 {
-                self.ppu.tick();
-            }
+        // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
+        for _ in 0..3 {
+            self.ppu.tick(ui.frame);
         }
+
+        Ok(())
     }
 }

@@ -1,3 +1,6 @@
+use pixels::Pixels;
+use winit::window::Window;
+
 use crate::mem::{Address, Bus};
 
 pub const VRAM_SIZE: usize = 2048;
@@ -85,7 +88,9 @@ impl<M> Ppu<M> {
         }
     }
 
-    pub fn tick(&self) {}
+    pub fn tick(&self, _frame: &mut Pixels<Window>) {
+        unimplemented!()
+    }
 }
 
 /// The CPU can interact with the PPU via its registers, which are mapped into

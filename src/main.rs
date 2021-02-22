@@ -1,4 +1,4 @@
-#![deny(warnings)]
+// #![deny(warnings)]
 
 use std::{fs::File, io::prelude::*, path::PathBuf, process::exit};
 

@@ -26,6 +26,8 @@ pub(super) struct CpuMapper0 {
 
 impl CpuMapper0 {
     fn new(prg: Vec<u8>) -> Self {
+        // This mapper comes in 2 variants: NROM-128, which contains 16 KiB of
+        // PRG ROM (128 kilobits), and NROM-256 with 32 KiB (256 kilobits).
         assert!(prg.len() == NROM_128_SIZE || prg.len() == NROM_256_SIZE);
         Self { prg }
     }
@@ -48,7 +50,10 @@ pub(super) struct PpuMapper0 {
 
 impl PpuMapper0 {
     fn new(chr: Vec<u8>) -> Self {
-        assert_eq!(chr.len(), VRAM_SIZE);
+        // This mapper directly maps the CHR RAM into the lower portion of the
+        // PPU's address space, which means it must fit exactly in the space
+        // reserved for the 2 pattern tables (4 KiB each, so 8 KiB total).
+        assert!(chr.len() == NAMETABLE_BASE_ADDR.as_usize());
         Self { chr }
     }
 }

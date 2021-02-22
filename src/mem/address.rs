@@ -169,6 +169,79 @@ impl SubAssign<i8> for Address {
     }
 }
 
+impl Add<u16> for Address {
+    type Output = Self;
+
+    fn add(self, other: u16) -> Self {
+        Self(self.0 + other)
+    }
+}
+
+impl Sub<u16> for Address {
+    type Output = Self;
+
+    fn sub(self, other: u16) -> Self {
+        Self(self.0 - other)
+    }
+}
+
+impl Add<i16> for Address {
+    type Output = Self;
+
+    fn add(self, other: i16) -> Self {
+        let other = other as i16;
+        if other < 0 {
+            Self(self.0 - -other as u16)
+        } else {
+            Self(self.0 + other as u16)
+        }
+    }
+}
+
+impl Sub<i16> for Address {
+    type Output = Self;
+
+    fn sub(self, other: i16) -> Self {
+        if other < 0 {
+            Self(self.0 + -other as u16)
+        } else {
+            Self(self.0 - other as u16)
+        }
+    }
+}
+
+impl AddAssign<u16> for Address {
+    fn add_assign(&mut self, other: u16) {
+        self.0 += other;
+    }
+}
+
+impl SubAssign<u16> for Address {
+    fn sub_assign(&mut self, other: u16) {
+        self.0 -= other;
+    }
+}
+
+impl AddAssign<i16> for Address {
+    fn add_assign(&mut self, other: i16) {
+        if other < 0 {
+            self.0 -= -other as u16;
+        } else {
+            self.0 += other as u16;
+        }
+    }
+}
+
+impl SubAssign<i16> for Address {
+    fn sub_assign(&mut self, other: i16) {
+        if other < 0 {
+            self.0 += -other as u16;
+        } else {
+            self.0 -= other as u16;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

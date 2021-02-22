@@ -14,6 +14,9 @@ pub const PALETTE_ADDR_BITS: u8 = 5;
 // to determine which register to select.
 const PPU_REG_ADDR_BITS: u8 = 3;
 
+const FRAME_WIDTH: usize = 256;
+const TABLE_WIDTH: usize = 128;
+
 enum PpuRegister {
     Ctrl,
     Mask,
@@ -77,7 +80,7 @@ pub struct Ppu<M> {
     mapper: M,
 }
 
-impl<M> Ppu<M> {
+impl<M: PpuBus> Ppu<M> {
     pub fn with_mapper(mapper: M) -> Self {
         Self {
             registers: Registers::default(),
@@ -88,9 +91,95 @@ impl<M> Ppu<M> {
         }
     }
 
-    pub fn tick(&self, _frame: &mut Pixels<Window>) {
-        unimplemented!()
+    pub fn tick(&self, _frame: &mut Pixels<Window>) {}
+
+    /// Read the pattern tables from the PPU's address space and render them as
+    /// a pair of 128x128 greyscale grids. The output buffer must be at least
+    /// 16 KiB in size in order to store 2 * 128 * 128 * 4 bytes (each pixel is
+    /// stored as a 4-byte RGBA sequence).
+    pub fn read_pattern_table(&mut self, frame: &mut [u8]) {
+        assert!(frame.len() >= 0x4000);
+        for table in 0..2 {
+            for tile in 0..=255u8 {
+                let table_addr = Address(table as u16 * 0x1000u16);
+                let (low, high) = self.load_tile(table_addr, tile);
+                draw_tile(
+                    frame,
+                    FRAME_WIDTH,
+                    TABLE_WIDTH * table,
+                    0,
+                    tile,
+                    &low,
+                    &high,
+                );
+            }
+        }
     }
+
+    /// Load a tile from the pattern table at the specified address.
+    ///
+    /// Each pattern table consists of 256 8x8 tiles, with 2 bits per pixel.
+    /// These two bits are not stored adjacently; instead, the low bits of the
+    /// tile are stored first, followed by the high bits. As such, this method
+    /// returns 2 arrays containing the low bits and high bits respectively.
+    fn load_tile(&mut self, table: Address, tile_num: u8) -> ([u8; 8], [u8; 8]) {
+        let mut low = [0u8; 8];
+        let mut high = [0u8; 8];
+        let base = table + tile_num as u16 * 16;
+        for i in 0..8 {
+            low[i] = self.mapper.ppu_load(&self.vram, base + i as u16);
+            high[i] = self.mapper.ppu_load(&self.vram, base + i as u16 + 8u16);
+        }
+        (low, high)
+    }
+}
+
+/// Draw a tile to the framebuffer.
+fn draw_tile(
+    frame: &mut [u8],
+    frame_width: usize,
+    offset_x: usize,
+    offset_y: usize,
+    tile_num: u8,
+    low_bits: &[u8; 8],
+    high_bits: &[u8; 8],
+) {
+    for i in 0..64 {
+        // Get pixel coords within tile.
+        let x = i % 8;
+        let y = i / 8;
+
+        // Get bits for pixel and convert to RGBA. Note that the highest-order
+        // bit is considered the "first" bit, so the bit indexes are inverted.
+        let low = low_bits[y] & 1 << (7 - x) > 0;
+        let high = high_bits[y] & 1 << (7 - x) > 0;
+        let rgba = to_rgba(low, high);
+
+        // Get tile location in grid.
+        let tile_x = tile_num as usize % 16;
+        let tile_y = tile_num as usize / 16;
+
+        // Get absolute coords of the pixel in the frame.
+        let abs_x = offset_x + tile_x * 8 + x;
+        let abs_y = offset_y + tile_y * 8 + y;
+
+        // Get final pixel offset in framebuffer.
+        let offset = (abs_y * frame_width + abs_x) * 4;
+
+        // Write pixel to framebuffer.
+        frame[offset..offset + 4].copy_from_slice(&rgba[..]);
+    }
+}
+
+/// Turn a 2-bit pixel value into a greyscale RGBA pixel.
+fn to_rgba(low: bool, high: bool) -> [u8; 4] {
+    let v = match (low, high) {
+        (false, false) => 0x00,
+        (true, false) => 0x55,
+        (false, true) => 0xAA,
+        (true, true) => 0xFF,
+    };
+    [v, v, v, 0xFF]
 }
 
 /// The CPU can interact with the PPU via its registers, which are mapped into

@@ -9,7 +9,7 @@ use winit::{
 use winit_input_helper::WinitInputHelper;
 
 const LOGICAL_WIDTH: u32 = 256;
-const LOGICAL_HEIGHT: u32 = 240;
+const LOGICAL_HEIGHT: u32 = 128;
 
 pub struct Ui<'p, 'i> {
     pub frame: &'p mut Pixels<Window>,
@@ -44,6 +44,10 @@ where
     let mut input = WinitInputHelper::new();
 
     event_loop.run(move |event, _, control_flow| {
+        log::trace!("Event: {:?}", &event);
+
+        *control_flow = ControlFlow::Wait;
+
         if let Event::RedrawRequested(_) = event {
             if let Err(e) = pixels.render() {
                 log::error!("Exiting due to render error: {}", e);
@@ -66,12 +70,13 @@ where
             pixels.resize(size.width, size.height);
         };
 
+        log::trace!("Calling user callback");
         if let Err(e) = callback(Ui::new(&mut pixels, &input)) {
             log::error!("Exiting due to emulation error: {}", e);
             *control_flow = ControlFlow::Exit;
             return;
         }
 
-        window.request_redraw();
+        //window.request_redraw();
     });
 }

@@ -26,16 +26,18 @@ impl Nes {
     }
 
     pub fn poll(&mut self, ui: Ui) -> Result<()> {
-        // Create a view of the CPU's addres space, including all memory-mapped devices.
-        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+        //        // Create a view of the CPU's addres space, including all memory-mapped devices.
+        //        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+        //
+        //        // Run the CPU.
+        //        self.cpu.tick(&mut memory)?;
+        //
+        //        // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
+        //        for _ in 0..3 {
+        //            self.ppu.tick(ui.frame);
+        //        }
 
-        // Run the CPU.
-        self.cpu.tick(&mut memory)?;
-
-        // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
-        for _ in 0..3 {
-            self.ppu.tick(ui.frame);
-        }
+        self.ppu.read_pattern_table(ui.frame.get_frame());
 
         Ok(())
     }

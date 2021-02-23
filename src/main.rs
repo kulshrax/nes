@@ -24,7 +24,7 @@ use crate::rom::Rom;
 #[structopt(name = "nes", about = "A toy NES emulator")]
 enum Command {
     Run(RunArgs),
-    RunRaw(RunRawArgs),
+    DebugCpu(DebugCpuArgs),
 }
 
 #[derive(Debug, StructOpt)]
@@ -36,7 +36,7 @@ struct RunArgs {
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Run a raw MOS 6502 binary")]
-struct RunRawArgs {
+struct DebugCpuArgs {
     #[structopt(parse(from_os_str), help = "Path to binary file")]
     binary: PathBuf,
     #[structopt(help = "Address at which to start execution")]
@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     env_logger::init();
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
-        Command::RunRaw(args) => cmd_run_raw(args),
+        Command::DebugCpu(args) => cmd_debug_cpu(args),
     }
 }
 
@@ -58,12 +58,12 @@ fn cmd_run(args: RunArgs) -> Result<()> {
     ui::run(move |ui| nes.poll(ui))
 }
 
-fn cmd_run_raw(args: RunRawArgs) -> Result<()> {
+fn cmd_debug_cpu(args: DebugCpuArgs) -> Result<()> {
     if !args.binary.is_file() {
         eprintln!("{:?} is not a file", &args.binary);
         exit(1);
     }
-    log::info!("Loading raw binary: {:?}", &args.binary);
+    log::info!("Executing binary: {:?}", &args.binary);
 
     let mut binary = Vec::new();
     let mut file = File::open(&args.binary)?;

@@ -35,6 +35,8 @@ impl CpuMapper0 {
 
 impl Bus for CpuMapper0 {
     fn load(&mut self, addr: Address) -> u8 {
+        // NROM-256 fills the entire top half of the CPU address space.
+        // NROM-128 only fills half of that space, so it is mirrored.
         let i = (addr.as_usize() - CPU_BASE_ADDR) % self.prg.len();
         self.prg[i]
     }

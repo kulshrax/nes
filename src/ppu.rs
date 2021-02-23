@@ -1,6 +1,3 @@
-use pixels::Pixels;
-use winit::window::Window;
-
 use crate::mem::{Address, Bus};
 
 pub const VRAM_SIZE: usize = 2048;
@@ -91,7 +88,9 @@ impl<M: PpuBus> Ppu<M> {
         }
     }
 
-    pub fn tick(&self, _frame: &mut Pixels<Window>) {}
+    pub fn tick(&self, _frame: &mut [u8]) {
+        unimplemented!();
+    }
 
     /// Read the pattern tables from the PPU's address space and render them as
     /// a pair of 128x128 greyscale grids. The output buffer must be at least

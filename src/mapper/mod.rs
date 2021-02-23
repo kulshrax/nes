@@ -25,6 +25,7 @@ trait Mapper {
 
 /// Initialize the appropriate mappers for this ROM file.
 pub fn init(rom: Rom) -> (CpuMapper, PpuMapper) {
+    // TODO: Read mapper number from ROM header to select appropriate mapper.
     let (cpu_mapper, ppu_mapper) = mapper0::Mapper0::from_rom(rom);
     (Box::new(cpu_mapper), Box::new(ppu_mapper))
 }

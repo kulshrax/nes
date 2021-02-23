@@ -2,7 +2,10 @@ use crate::mem::{Address, Bus};
 
 pub const VRAM_SIZE: usize = 2048;
 
-pub const NAMETABLE_BASE_ADDR: Address = Address(0x2000);
+pub const NAMETABLE_0_ADDR: Address = Address(0x2000);
+pub const NAMETABLE_1_ADDR: Address = Address(0x2400);
+pub const NAMETABLE_2_ADDR: Address = Address(0x2800);
+pub const NAMETABLE_3_ADDR: Address = Address(0x2C00);
 
 pub const PALETTE_BASE_ADDR: Address = Address(0x3F00);
 pub const PALETTE_ADDR_BITS: u8 = 5;
@@ -11,7 +14,9 @@ pub const PALETTE_ADDR_BITS: u8 = 5;
 // to determine which register to select.
 const PPU_REG_ADDR_BITS: u8 = 3;
 
-const FRAME_WIDTH: usize = 256;
+pub const FRAME_WIDTH: usize = 256;
+pub const FRAME_HEIGHT: usize = 240;
+
 const TABLE_WIDTH: usize = 128;
 
 enum PpuRegister {
@@ -92,11 +97,14 @@ impl<M: PpuBus> Ppu<M> {
         unimplemented!();
     }
 
+    /// Render all 4 nametables.
+    pub fn render_name_tables(&mut self, frame: &mut [u8]) {}
+
     /// Read the pattern tables from the PPU's address space and render them as
     /// a pair of 128x128 greyscale grids. The output buffer must be at least
     /// 16 KiB in size in order to store 2 * 128 * 128 * 4 bytes (each pixel is
     /// stored as a 4-byte RGBA sequence).
-    pub fn read_pattern_table(&mut self, frame: &mut [u8]) {
+    pub fn render_pattern_table(&mut self, frame: &mut [u8]) {
         assert!(frame.len() >= 0x4000);
         for table in 0..2 {
             for tile in 0..=255u8 {

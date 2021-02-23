@@ -1,5 +1,5 @@
 use crate::mem::{Address, Bus};
-use crate::ppu::{PpuBus, Vram, NAMETABLE_BASE_ADDR, VRAM_SIZE};
+use crate::ppu::{PpuBus, Vram, NAMETABLE_0_ADDR, VRAM_SIZE};
 use crate::rom::Rom;
 
 use super::Mapper;
@@ -16,7 +16,7 @@ impl Mapper for Mapper0 {
     }
 }
 
-const CPU_BASE_ADDR: usize = 0x8000;
+const PRG_BASE_ADDR: usize = 0x8000;
 const NROM_128_SIZE: usize = 0x4000;
 const NROM_256_SIZE: usize = 0x8000;
 
@@ -37,7 +37,7 @@ impl Bus for CpuMapper0 {
     fn load(&mut self, addr: Address) -> u8 {
         // NROM-256 fills the entire top half of the CPU address space.
         // NROM-128 only fills half of that space, so it is mirrored.
-        let i = (addr.as_usize() - CPU_BASE_ADDR) % self.prg.len();
+        let i = (addr.as_usize() - PRG_BASE_ADDR) % self.prg.len();
         self.prg[i]
     }
 
@@ -55,26 +55,28 @@ impl PpuMapper0 {
         // This mapper directly maps the CHR RAM into the lower portion of the
         // PPU's address space, which means it must fit exactly in the space
         // reserved for the 2 pattern tables (4 KiB each, so 8 KiB total).
-        assert!(chr.len() == NAMETABLE_BASE_ADDR.as_usize());
+        // Nametable 0 is directly after the pattern tables, so use its base
+        // address to check the size.
+        assert!(chr.len() == NAMETABLE_0_ADDR.as_usize());
         Self { chr }
     }
 }
 
 impl PpuBus for PpuMapper0 {
     fn ppu_load(&mut self, vram: &Vram, addr: Address) -> u8 {
-        if addr < NAMETABLE_BASE_ADDR {
+        if addr < NAMETABLE_0_ADDR {
             self.chr[addr.as_usize()]
         } else {
             // TODO: Implement nametable mirroring.
-            let i = addr.as_usize() - NAMETABLE_BASE_ADDR.as_usize();
+            let i = addr.as_usize() - NAMETABLE_0_ADDR.as_usize();
             vram.0[i]
         }
     }
 
     fn ppu_store(&mut self, vram: &mut Vram, addr: Address, value: u8) {
-        if addr >= NAMETABLE_BASE_ADDR {
+        if addr >= NAMETABLE_0_ADDR {
             // TODO: Implement nametable mirroring.
-            let i = addr.as_usize() - NAMETABLE_BASE_ADDR.as_usize();
+            let i = addr.as_usize() - NAMETABLE_0_ADDR.as_usize();
             vram.0[i] = value;
         }
     }

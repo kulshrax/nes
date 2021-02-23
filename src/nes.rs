@@ -37,7 +37,7 @@ impl Nes {
         //            self.ppu.tick(ui.frame);
         //        }
 
-        self.ppu.read_pattern_table(ui.frame.get_frame());
+        self.ppu.render_pattern_table(ui.frame.get_frame());
 
         Ok(())
     }

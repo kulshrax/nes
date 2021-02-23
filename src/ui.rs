@@ -8,8 +8,7 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-const LOGICAL_WIDTH: u32 = 256;
-const LOGICAL_HEIGHT: u32 = 128;
+use crate::ppu::{FRAME_HEIGHT, FRAME_WIDTH};
 
 pub struct Ui<'p, 'i> {
     pub frame: &'p mut Pixels<Window>,
@@ -30,7 +29,7 @@ where
 
     let event_loop = EventLoop::new();
 
-    let logical_size = LogicalSize::new(LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    let logical_size = LogicalSize::new(FRAME_WIDTH as f64, FRAME_HEIGHT as f64);
     let window = WindowBuilder::new()
         .with_title("NES Emulator")
         .with_inner_size(logical_size)
@@ -39,7 +38,7 @@ where
 
     let PhysicalSize { width, height } = window.inner_size();
     let surface_texture = SurfaceTexture::new(width, height, &window);
-    let mut pixels = Pixels::new(LOGICAL_WIDTH, LOGICAL_HEIGHT, surface_texture)?;
+    let mut pixels = Pixels::new(FRAME_WIDTH as u32, FRAME_HEIGHT as u32, surface_texture)?;
 
     let mut input = WinitInputHelper::new();
 

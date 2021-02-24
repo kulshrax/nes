@@ -45,7 +45,29 @@ impl Ui for Nes {
         // for _ in 0..3 {
         //     self.ppu.tick(ui.frame);
         // }
-        self.ppu.render_pattern_table(frame);
+        Ok(())
+    }
+}
+
+/// Newtype wrapper to provide alternative UI for debug-pattern command.
+pub struct DebugPatternUi {
+    nes: Nes,
+}
+
+impl DebugPatternUi {
+    pub fn new(nes: Nes) -> Self {
+        DebugPatternUi { nes }
+    }
+}
+
+impl Ui for DebugPatternUi {
+    fn size(&self) -> (u32, u32) {
+        // Enough space to render both pattern tables (128x128) side-by-side.
+        (256, 128)
+    }
+
+    fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, dt: Duration) -> Result<()> {
+        self.nes.ppu.render_pattern_table(frame);
         Ok(())
     }
 }

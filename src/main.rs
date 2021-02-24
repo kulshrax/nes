@@ -17,7 +17,7 @@ mod ui;
 
 use crate::cpu::Cpu;
 use crate::mem::Address;
-use crate::nes::Nes;
+use crate::nes::{DebugPatternUi, Nes};
 use crate::rom::Rom;
 use crate::ui::Run;
 
@@ -26,6 +26,7 @@ use crate::ui::Run;
 enum Command {
     Run(RunArgs),
     DebugCpu(DebugCpuArgs),
+    DebugPattern(DebugPatternArgs),
 }
 
 #[derive(Debug, StructOpt)]
@@ -44,11 +45,19 @@ struct DebugCpuArgs {
     start: Option<Address>,
 }
 
+#[derive(Debug, StructOpt)]
+#[structopt(about = "Display the pattern table from a ROM file")]
+struct DebugPatternArgs {
+    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    rom: PathBuf,
+}
+
 fn main() -> Result<()> {
     env_logger::init();
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
         Command::DebugCpu(args) => cmd_debug_cpu(args),
+        Command::DebugPattern(args) => cmd_debug_pattern(args),
     }
 }
 
@@ -72,4 +81,12 @@ fn cmd_debug_cpu(args: DebugCpuArgs) -> Result<()> {
 
     let mut cpu = Cpu::new();
     cpu.run(&binary, args.start)
+}
+
+fn cmd_debug_pattern(args: DebugPatternArgs) -> Result<()> {
+    log::info!("Displaying pattern table for ROM: {:?}", &args.rom);
+    let rom = Rom::load(&args.rom)?;
+    let nes = Nes::new(rom);
+    let ui = DebugPatternUi::new(nes);
+    ui.run()
 }

@@ -34,17 +34,18 @@ impl Ui for Nes {
         (FRAME_WIDTH as u32, FRAME_HEIGHT as u32)
     }
 
-    fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, dt: Duration) -> Result<()> {
-        // // Create a view of the CPU's addres space, including all memory-mapped devices.
-        // let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
-        //
-        // // Run the CPU.
-        // self.cpu.tick(&mut memory)?;
-        //
-        // // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
-        // for _ in 0..3 {
-        //     self.ppu.tick(ui.frame);
-        // }
+    fn update(&mut self, frame: &mut [u8], _input: &WinitInputHelper, _dt: Duration) -> Result<()> {
+        // Create a view of the CPU's addres space, including all memory-mapped devices.
+        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+
+        // Run the CPU.
+        self.cpu.tick(&mut memory)?;
+
+        // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
+        for _ in 0..3 {
+            self.ppu.tick(frame);
+        }
+
         Ok(())
     }
 }

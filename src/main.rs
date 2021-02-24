@@ -25,8 +25,8 @@ use crate::ui::Run;
 #[structopt(name = "nes", about = "A toy NES emulator")]
 enum Command {
     Run(RunArgs),
-    DebugCpu(DebugCpuArgs),
-    DebugPattern(DebugPatternArgs),
+    RunCpu(RunCpuArgs),
+    ShowPattern(ShowPatternArgs),
 }
 
 #[derive(Debug, StructOpt)]
@@ -38,7 +38,7 @@ struct RunArgs {
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Run a raw MOS 6502 binary")]
-struct DebugCpuArgs {
+struct RunCpuArgs {
     #[structopt(parse(from_os_str), help = "Path to binary file")]
     binary: PathBuf,
     #[structopt(help = "Address at which to start execution")]
@@ -47,7 +47,7 @@ struct DebugCpuArgs {
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Display the pattern table from a ROM file")]
-struct DebugPatternArgs {
+struct ShowPatternArgs {
     #[structopt(parse(from_os_str), help = "Path to ROM file")]
     rom: PathBuf,
 }
@@ -56,8 +56,8 @@ fn main() -> Result<()> {
     env_logger::init();
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
-        Command::DebugCpu(args) => cmd_debug_cpu(args),
-        Command::DebugPattern(args) => cmd_debug_pattern(args),
+        Command::RunCpu(args) => cmd_run_cpu(args),
+        Command::ShowPattern(args) => cmd_show_pattern(args),
     }
 }
 
@@ -68,7 +68,7 @@ fn cmd_run(args: RunArgs) -> Result<()> {
     nes.run()
 }
 
-fn cmd_debug_cpu(args: DebugCpuArgs) -> Result<()> {
+fn cmd_run_cpu(args: RunCpuArgs) -> Result<()> {
     if !args.binary.is_file() {
         eprintln!("{:?} is not a file", &args.binary);
         exit(1);
@@ -83,7 +83,7 @@ fn cmd_debug_cpu(args: DebugCpuArgs) -> Result<()> {
     cpu.run(&binary, args.start)
 }
 
-fn cmd_debug_pattern(args: DebugPatternArgs) -> Result<()> {
+fn cmd_show_pattern(args: ShowPatternArgs) -> Result<()> {
     log::info!("Displaying pattern table for ROM: {:?}", &args.rom);
     let rom = Rom::load(&args.rom)?;
     let nes = Nes::new(rom);

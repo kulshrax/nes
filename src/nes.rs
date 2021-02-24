@@ -1,9 +1,12 @@
+use std::time::Duration;
+
 use anyhow::Result;
+use winit_input_helper::WinitInputHelper;
 
 use crate::cpu::Cpu;
 use crate::mapper::{self, CpuMapper, PpuMapper};
 use crate::mem::{Memory, Ram};
-use crate::ppu::Ppu;
+use crate::ppu::{Ppu, FRAME_HEIGHT, FRAME_WIDTH};
 use crate::rom::Rom;
 use crate::ui::Ui;
 
@@ -24,21 +27,25 @@ impl Nes {
             mapper,
         }
     }
+}
 
-    pub fn poll(&mut self, ui: Ui) -> Result<()> {
-        //        // Create a view of the CPU's addres space, including all memory-mapped devices.
-        //        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+impl Ui for Nes {
+    fn size(&self) -> (u32, u32) {
+        (FRAME_WIDTH as u32, FRAME_HEIGHT as u32)
+    }
+
+    fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, dt: Duration) -> Result<()> {
+        // // Create a view of the CPU's addres space, including all memory-mapped devices.
+        // let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
         //
-        //        // Run the CPU.
-        //        self.cpu.tick(&mut memory)?;
+        // // Run the CPU.
+        // self.cpu.tick(&mut memory)?;
         //
-        //        // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
-        //        for _ in 0..3 {
-        //            self.ppu.tick(ui.frame);
-        //        }
-
-        self.ppu.render_pattern_table(ui.frame.get_frame());
-
+        // // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
+        // for _ in 0..3 {
+        //     self.ppu.tick(ui.frame);
+        // }
+        self.ppu.render_pattern_table(frame);
         Ok(())
     }
 }

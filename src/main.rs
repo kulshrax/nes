@@ -19,6 +19,7 @@ use crate::cpu::Cpu;
 use crate::mem::Address;
 use crate::nes::Nes;
 use crate::rom::Rom;
+use crate::ui::Run;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nes", about = "A toy NES emulator")]
@@ -55,7 +56,7 @@ fn cmd_run(args: RunArgs) -> Result<()> {
     log::info!("Loading ROM: {:?}", &args.rom);
     let rom = Rom::load(&args.rom)?;
     let mut nes = Nes::new(rom);
-    ui::run(move |ui| nes.poll(ui))
+    nes.run()
 }
 
 fn cmd_debug_cpu(args: DebugCpuArgs) -> Result<()> {

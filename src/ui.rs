@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use anyhow::Result;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
@@ -8,74 +10,77 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-use crate::ppu::{FRAME_HEIGHT, FRAME_WIDTH};
+pub trait Ui {
+    fn size(&self) -> (u32, u32);
 
-pub struct Ui<'p, 'i> {
-    pub frame: &'p mut Pixels<Window>,
-    pub input: &'i WinitInputHelper,
+    fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, dt: Duration) -> Result<()>;
 }
 
-impl<'p, 'i> Ui<'p, 'i> {
-    fn new(frame: &'p mut Pixels<Window>, input: &'i WinitInputHelper) -> Self {
-        Self { frame, input }
-    }
+pub trait Run {
+    fn run(self) -> Result<()>;
 }
 
-pub fn run<F>(mut callback: F) -> Result<()>
-where
-    F: FnMut(Ui) -> Result<()> + 'static,
-{
-    log::info!("Starting UI");
+impl<T: Ui + 'static> Run for T {
+    fn run(mut self) -> Result<()> {
+        log::info!("Starting UI");
 
-    let event_loop = EventLoop::new();
+        let event_loop = EventLoop::new();
 
-    let logical_size = LogicalSize::new(FRAME_WIDTH as f64, FRAME_HEIGHT as f64);
-    let window = WindowBuilder::new()
-        .with_title("NES Emulator")
-        .with_inner_size(logical_size)
-        .with_min_inner_size(logical_size)
-        .build(&event_loop)?;
+        let (width, height) = self.size();
+        let logical_size = LogicalSize::new(width, height);
+        let window = WindowBuilder::new()
+            .with_title("NES Emulator")
+            .with_inner_size(logical_size)
+            .with_min_inner_size(logical_size)
+            .build(&event_loop)?;
 
-    let PhysicalSize { width, height } = window.inner_size();
-    let surface_texture = SurfaceTexture::new(width, height, &window);
-    let mut pixels = Pixels::new(FRAME_WIDTH as u32, FRAME_HEIGHT as u32, surface_texture)?;
+        let phys_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(phys_size.width, phys_size.height, &window);
+        let mut pixels = Pixels::new(width as u32, height as u32, surface_texture)?;
 
-    let mut input = WinitInputHelper::new();
+        let mut input = WinitInputHelper::new();
 
-    event_loop.run(move |event, _, control_flow| {
-        log::trace!("Event: {:?}", &event);
+        let mut time = Instant::now();
 
-        *control_flow = ControlFlow::Wait;
+        event_loop.run(move |event, _, control_flow| {
+            log::trace!("UI event: {:?}", &event);
 
-        if let Event::RedrawRequested(_) = event {
-            if let Err(e) = pixels.render() {
-                log::error!("Exiting due to render error: {}", e);
+            *control_flow = ControlFlow::Poll;
+
+            if let Event::RedrawRequested(_) = event {
+                if let Err(e) = pixels.render() {
+                    log::error!("Exiting due to render error: {}", e);
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+            }
+
+            if !input.update(&event) {
+                return;
+            }
+
+            if input.quit() {
+                log::info!("Exiting due to user request");
                 *control_flow = ControlFlow::Exit;
                 return;
             }
-        }
 
-        if !input.update(&event) {
-            return;
-        }
+            if let Some(size) = input.window_resized() {
+                pixels.resize(size.width, size.height);
+            };
 
-        if input.quit() {
-            log::info!("Exiting due to user request");
-            *control_flow = ControlFlow::Exit;
-            return;
-        }
+            let now = Instant::now();
+            let dt = now.duration_since(time);
+            time = now;
 
-        if let Some(size) = input.window_resized() {
-            pixels.resize(size.width, size.height);
-        };
+            log::trace!("Updating frame after: {:?}", &dt);
+            if let Err(e) = self.update(pixels.get_frame(), &input, dt) {
+                log::error!("Exiting due to emulation error: {}", e);
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
 
-        log::trace!("Calling user callback");
-        if let Err(e) = callback(Ui::new(&mut pixels, &input)) {
-            log::error!("Exiting due to emulation error: {}", e);
-            *control_flow = ControlFlow::Exit;
-            return;
-        }
-
-        //window.request_redraw();
-    });
+            window.request_redraw();
+        });
+    }
 }

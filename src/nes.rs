@@ -50,18 +50,18 @@ impl Ui for Nes {
     }
 }
 
-/// Newtype wrapper to provide alternative UI for debug-pattern command.
-pub struct DebugPatternUi {
+/// Newtype wrapper to provide alternative UI for show-pattern command.
+pub struct ShowPatternUi {
     nes: Nes,
 }
 
-impl DebugPatternUi {
+impl ShowPatternUi {
     pub fn new(nes: Nes) -> Self {
-        DebugPatternUi { nes }
+        ShowPatternUi { nes }
     }
 }
 
-impl Ui for DebugPatternUi {
+impl Ui for ShowPatternUi {
     fn size(&self) -> (u32, u32) {
         // Enough space to render both pattern tables (128x128) side-by-side.
         (256, 128)

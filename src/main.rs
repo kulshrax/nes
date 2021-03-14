@@ -17,7 +17,7 @@ mod ui;
 
 use crate::cpu::Cpu;
 use crate::mem::Address;
-use crate::nes::{DebugPatternUi, Nes};
+use crate::nes::{Nes, ShowPatternUi};
 use crate::rom::Rom;
 use crate::ui::Run;
 
@@ -87,6 +87,6 @@ fn cmd_show_pattern(args: ShowPatternArgs) -> Result<()> {
     log::info!("Displaying pattern table for ROM: {:?}", &args.rom);
     let rom = Rom::load(&args.rom)?;
     let nes = Nes::new(rom);
-    let ui = DebugPatternUi::new(nes);
+    let ui = ShowPatternUi::new(nes);
     ui.run()
 }

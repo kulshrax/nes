@@ -3,9 +3,9 @@ use crate::mem::{Address, Bus};
 pub const VRAM_SIZE: usize = 2048;
 
 pub const NAMETABLE_0_ADDR: Address = Address(0x2000);
-pub const NAMETABLE_1_ADDR: Address = Address(0x2400);
-pub const NAMETABLE_2_ADDR: Address = Address(0x2800);
-pub const NAMETABLE_3_ADDR: Address = Address(0x2C00);
+pub const _NAMETABLE_1_ADDR: Address = Address(0x2400);
+pub const _NAMETABLE_2_ADDR: Address = Address(0x2800);
+pub const _NAMETABLE_3_ADDR: Address = Address(0x2C00);
 
 pub const PALETTE_BASE_ADDR: Address = Address(0x3F00);
 pub const PALETTE_ADDR_BITS: u8 = 5;
@@ -97,8 +97,8 @@ impl<M: PpuBus> Ppu<M> {
         unimplemented!();
     }
 
-    /// Render all 4 nametables.
-    pub fn render_name_tables(&mut self, frame: &mut [u8]) {}
+    // /// Render all 4 nametables.
+    // pub fn render_name_tables(&mut self, frame: &mut [u8]) {}
 
     /// Read the pattern tables from the PPU's address space and render them as
     /// a pair of 128x128 greyscale grids. The output buffer must be at least

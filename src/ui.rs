@@ -3,24 +3,18 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
-    dpi::{LogicalSize, PhysicalSize},
+    dpi::LogicalSize,
     event::Event,
     event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
+    window::WindowBuilder,
 };
 use winit_input_helper::WinitInputHelper;
 
-pub trait Ui {
+pub trait Ui: Sized + 'static {
     fn size(&self) -> (u32, u32);
 
     fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, dt: Duration) -> Result<()>;
-}
 
-pub trait Run {
-    fn run(self) -> Result<()>;
-}
-
-impl<T: Ui + 'static> Run for T {
     fn run(mut self) -> Result<()> {
         log::info!("Starting UI");
 

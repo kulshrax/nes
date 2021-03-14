@@ -67,7 +67,7 @@ impl Ui for ShowPatternUi {
         (256, 128)
     }
 
-    fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, dt: Duration) -> Result<()> {
+    fn update(&mut self, frame: &mut [u8], _input: &WinitInputHelper, _dt: Duration) -> Result<()> {
         self.nes.ppu.render_pattern_table(frame);
         Ok(())
     }

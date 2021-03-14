@@ -1,5 +1,5 @@
 use crate::mem::{Address, Bus};
-use crate::ppu::{PpuBus, Vram, NAMETABLE_0_ADDR, VRAM_SIZE};
+use crate::ppu::{PpuBus, Vram, NAMETABLE_0_ADDR};
 use crate::rom::Rom;
 
 use super::Mapper;

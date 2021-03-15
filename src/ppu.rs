@@ -17,8 +17,6 @@ const PPU_REG_ADDR_BITS: u8 = 3;
 pub const FRAME_WIDTH: usize = 256;
 pub const FRAME_HEIGHT: usize = 240;
 
-const TABLE_WIDTH: usize = 128;
-
 static _PALETTE: &[u8] = include_bytes!("../data/FBX-Final.pal");
 
 enum PpuRegister {
@@ -95,8 +93,8 @@ impl<M: PpuBus> Ppu<M> {
         }
     }
 
-    pub fn tick(&self, _frame: &mut [u8]) {
-        unimplemented!();
+    pub fn tick(&mut self, frame: &mut [u8]) {
+        self.render_name_table(frame, NAMETABLE_0_ADDR);
     }
 
     /// Render the specified nametable.
@@ -123,7 +121,7 @@ impl<M: PpuBus> Ppu<M> {
                 let tile_y = tile_num / 16;
 
                 // Get desired coords of upper left pixel of tile.
-                let x = tile_x * 8 + (TABLE_WIDTH * table);
+                let x = tile_x * 8 + (128 * table);
                 let y = tile_y * 8;
 
                 // Load and draw tile.

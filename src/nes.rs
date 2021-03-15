@@ -19,11 +19,21 @@ pub struct Nes {
 
 impl Nes {
     pub fn new(rom: Rom) -> Self {
-        let (mapper, ppu_mapper) = mapper::init(rom);
+        let (mut mapper, ppu_mapper) = mapper::init(rom);
+
+        let mut cpu = Cpu::new();
+        let mut ram = Ram::new();
+        let mut ppu = Ppu::with_mapper(ppu_mapper);
+
+        // Reset the CPU to set the initial value of the program counter from
+        // the reset vector (loaded from memory via the CPU mapper).
+        let mut memory = Memory::new(&mut ram, &mut ppu, &mut mapper);
+        cpu.reset(&mut memory);
+
         Self {
-            cpu: Cpu::new(),
-            ram: Ram::new(),
-            ppu: Ppu::with_mapper(ppu_mapper),
+            cpu,
+            ram,
+            ppu,
             mapper,
         }
     }
@@ -35,17 +45,18 @@ impl Ui for Nes {
     }
 
     fn update(&mut self, frame: &mut [u8], _input: &WinitInputHelper, _dt: Duration) -> Result<()> {
-        // Create a view of the CPU's addres space, including all memory-mapped devices.
-        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+        for _ in 0..1000 {
+            // Create a view of the CPU's addres space, including all memory-mapped devices.
+            let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
 
-        // Run the CPU.
-        self.cpu.tick(&mut memory);
+            // Run the CPU.
+            self.cpu.tick(&mut memory);
 
-        // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
-        for _ in 0..3 {
-            self.ppu.tick(frame);
+            // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
+            for _ in 0..3 {
+                self.ppu.tick(frame);
+            }
         }
-
         Ok(())
     }
 }

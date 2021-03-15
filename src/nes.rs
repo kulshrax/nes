@@ -39,7 +39,7 @@ impl Ui for Nes {
         let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
 
         // Run the CPU.
-        self.cpu.tick(&mut memory)?;
+        self.cpu.tick(&mut memory);
 
         // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
         for _ in 0..3 {

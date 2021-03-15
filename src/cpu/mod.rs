@@ -17,8 +17,6 @@
 
 use std::cmp;
 
-use anyhow::{bail, Result};
-
 use crate::mem::{Address, Bus};
 
 use addressing::{Absolute, AddressingMode, Relative};
@@ -98,7 +96,7 @@ impl Cpu {
     /// specified in the reset vector contained in the binary itself.
     ///
     /// This function does not return.
-    pub fn run(&mut self, binary: &[u8], start: Option<Address>) -> Result<()> {
+    pub fn run(&mut self, binary: &[u8], start: Option<Address>) {
         // Copy the binary into a 16-bit address space.
         let mut memory = [0u8; 0x10000];
         let n = cmp::min(binary.len(), 0x10000); // Truncate binary if too big.
@@ -113,7 +111,7 @@ impl Cpu {
         loop {
             // Note that we don't keep track of cycle timing here since the
             // CPU is running in isolation.
-            let _ = self.step(&mut memory)?;
+            let _ = self.step(&mut memory);
         }
     }
 
@@ -133,7 +131,7 @@ impl Cpu {
 
     /// Fetch and execute a single instruction. Returns the the number of clock
     /// cycles taken to execute the instruction.
-    pub fn step(&mut self, memory: &mut dyn Bus) -> Result<u8> {
+    pub fn step(&mut self, memory: &mut dyn Bus) -> u8 {
         // Save starting program counter.
         let pc = self.registers.pc;
 
@@ -145,22 +143,20 @@ impl Cpu {
             self.irq(memory);
         }
 
-        let (instruction, opcode) = Instruction::fetch(memory, &mut self.registers.pc)?;
+        let (instruction, opcode) = Instruction::fetch(memory, &mut self.registers.pc);
         self.exec(memory, instruction);
         log::trace!("Registers: {}", &self.registers);
 
         // Crash if we detect an infinite loop. This is useful for test ROMs
         // that intentionally enter an infinite loop to signal a test failure.
         if pc == self.registers.pc {
-            bail!(
+            panic!(
                 "Detected infinite loop at {}; Registers: {}",
-                pc,
-                self.registers
+                pc, self.registers
             );
         }
 
-        // TODO: Return the actual number of clock cycles for this instruction.
-        Ok(CYCLE_TABLE[opcode as usize])
+        CYCLE_TABLE[opcode as usize]
     }
 
     /// Drive the CPU with an external clock signal.
@@ -171,14 +167,12 @@ impl Cpu {
     /// the "currently executing" instruction has finished. Note that although
     /// the CPU will "block" for the correct number of clock cycles, the actual
     /// effect of the instruction happens entirely on the first clock cycle.
-    pub fn tick(&mut self, memory: &mut dyn Bus) -> Result<()> {
+    pub fn tick(&mut self, memory: &mut dyn Bus) {
         if self.cycles_remaining == 0 {
-            self.cycles_remaining = self.step(memory)? - 1;
+            self.cycles_remaining = self.step(memory) - 1;
         } else {
             self.cycles_remaining -= 1;
         }
-
-        Ok(())
     }
 
     /// Reset the CPU by disabling interrupts and jumping to the location
@@ -739,8 +733,7 @@ impl Cpu {
     fn ror(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let mut value = am.load(memory, &self.registers);
 
-        // Current value of the carry flag, which will be
-        // rotated into bit 7.
+        // Current value of the carry flag, which will be rotated into bit 7.
         let old_carry = self.registers.p.contains(Flags::CARRY) as u8;
 
         // Bit 0, which is about to be rotated out into the carry flag.
@@ -775,8 +768,8 @@ impl Cpu {
         let value = am.load(memory, &self.registers);
         let carry_in = !self.registers.p.contains(Flags::CARRY);
 
-        // Cast the values to i16's before substracing so we can
-        // more easily check for underflow.
+        // Cast the values to i16's before substracing so we can more easily
+        // check for underflow.
         let res = self.registers.a as i16 - value as i16 - carry_in as i16;
         let carry_out = res >= 0;
         let res = res as u8;

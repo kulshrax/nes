@@ -80,7 +80,9 @@ fn cmd_run_cpu(args: RunCpuArgs) -> Result<()> {
     let _ = file.read_to_end(&mut binary)?;
 
     let mut cpu = Cpu::new();
-    cpu.run(&binary, args.start)
+    cpu.run(&binary, args.start);
+
+    Ok(())
 }
 
 fn cmd_show_pattern(args: ShowPatternArgs) -> Result<()> {

@@ -1,6 +1,3 @@
-use anyhow::{bail, Result};
-use log;
-
 use crate::mem::{Address, Bus};
 
 use super::addressing::*;
@@ -278,7 +275,7 @@ impl Instruction {
     /// increment the program counter by the appropriate amount after decoding
     /// the instruction. The opcode will be returned alongside the decoded
     /// instruction.
-    pub(super) fn fetch(memory: &mut dyn Bus, pc: &mut Address) -> Result<(Self, u8)> {
+    pub(super) fn fetch(memory: &mut dyn Bus, pc: &mut Address) -> (Self, u8) {
         use Instruction::*;
 
         let start_pc = *pc;
@@ -437,7 +434,7 @@ impl Instruction {
             0x8A => Txa,
             0x9A => Txs,
             0x98 => Tya,
-            illegal => bail!("Illegal opcode at address {}: {:#X}", start_pc, illegal),
+            illegal => panic!("Illegal opcode at address {}: {:#X}", start_pc, illegal),
         };
 
         log::trace!(
@@ -447,13 +444,12 @@ impl Instruction {
             instruction
         );
 
-        Ok((instruction, opcode))
+        (instruction, opcode)
     }
 }
 
-/// Read a 16-bit little endian address from memory at the
-/// location of the current program counter, incrementing
-/// the program counter by two.
+/// Read a 16-bit little endian address from memory at the location of the
+/// current program counter, incrementing the program counter by two.
 fn read_addr(memory: &mut dyn Bus, pc: &mut Address) -> Address {
     let lsb = memory.load(*pc);
     let msb = memory.load(*pc + 1u8);
@@ -461,8 +457,8 @@ fn read_addr(memory: &mut dyn Bus, pc: &mut Address) -> Address {
     Address::from([lsb, msb])
 }
 
-/// Read a byte from memory at the location of the current
-/// program coutner, incrementing the program counter by one.
+/// Read a byte from memory at the location of the current program coutner,
+/// incrementing the program counter by one.
 fn read_byte(memory: &mut dyn Bus, pc: &mut Address) -> u8 {
     let byte = memory.load(*pc);
     *pc += 1u8;

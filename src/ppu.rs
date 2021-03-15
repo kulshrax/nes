@@ -19,6 +19,8 @@ pub const FRAME_HEIGHT: usize = 240;
 
 const TABLE_WIDTH: usize = 128;
 
+static _PALETTE: &[u8] = include_bytes!("../data/FBX-Final.pal");
+
 enum PpuRegister {
     Ctrl,
     Mask,

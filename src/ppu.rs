@@ -97,8 +97,14 @@ impl<M: PpuBus> Ppu<M> {
         unimplemented!();
     }
 
-    // /// Render all 4 nametables.
-    // pub fn render_name_tables(&mut self, frame: &mut [u8]) {}
+    /// Render the specified nametable.
+    pub fn render_name_table(&mut self, frame: &mut [u8], table: Address) {
+        for pos in 0..960 {
+            let tile_num = self.mapper.ppu_load(&self.vram, table + pos as u16);
+            let tile = self.load_tile(Address(0), tile_num);
+            tile.draw(frame, pos);
+        }
+    }
 
     /// Read the pattern tables from the PPU's address space and render them as
     /// a pair of 128x128 greyscale grids. The output buffer must be at least
@@ -107,18 +113,20 @@ impl<M: PpuBus> Ppu<M> {
     pub fn render_pattern_table(&mut self, frame: &mut [u8]) {
         assert!(frame.len() >= 0x4000);
         for table in 0..2 {
-            for tile in 0..=255u8 {
-                let table_addr = Address(table as u16 * 0x1000u16);
-                let (low, high) = self.load_tile(table_addr, tile);
-                draw_tile(
-                    frame,
-                    FRAME_WIDTH,
-                    TABLE_WIDTH * table,
-                    0,
-                    tile,
-                    &low,
-                    &high,
-                );
+            // Get address of the nametable we're using.
+            let table_addr = Address(table as u16 * 0x1000u16);
+            for tile_num in 0..256 {
+                // Get tile position in grid.
+                let tile_x = tile_num % 16;
+                let tile_y = tile_num / 16;
+
+                // Get desired coords of upper left pixel of tile.
+                let x = tile_x * 8 + (TABLE_WIDTH * table);
+                let y = tile_y * 8;
+
+                // Load and draw tile.
+                let tile = self.load_tile(table_addr, tile_num as u8);
+                tile.draw_at(frame, FRAME_WIDTH, x, y);
             }
         }
     }
@@ -129,7 +137,7 @@ impl<M: PpuBus> Ppu<M> {
     /// These two bits are not stored adjacently; instead, the low bits of the
     /// tile are stored first, followed by the high bits. As such, this method
     /// returns 2 arrays containing the low bits and high bits respectively.
-    fn load_tile(&mut self, table: Address, tile_num: u8) -> ([u8; 8], [u8; 8]) {
+    fn load_tile(&mut self, table: Address, tile_num: u8) -> Tile {
         let mut low = [0u8; 8];
         let mut high = [0u8; 8];
         let base = table + tile_num as u16 * 16;
@@ -137,56 +145,8 @@ impl<M: PpuBus> Ppu<M> {
             low[i] = self.mapper.ppu_load(&self.vram, base + i as u16);
             high[i] = self.mapper.ppu_load(&self.vram, base + i as u16 + 8u16);
         }
-        (low, high)
+        Tile { low, high }
     }
-}
-
-/// Draw a tile to the framebuffer.
-fn draw_tile(
-    frame: &mut [u8],
-    frame_width: usize,
-    offset_x: usize,
-    offset_y: usize,
-    tile_num: u8,
-    low_bits: &[u8; 8],
-    high_bits: &[u8; 8],
-) {
-    for i in 0..64 {
-        // Get pixel coords within tile.
-        let x = i % 8;
-        let y = i / 8;
-
-        // Get bits for pixel and convert to RGBA. Note that the highest-order
-        // bit is considered the "first" bit, so the bit indexes are inverted.
-        let low = low_bits[y] & 1 << (7 - x) > 0;
-        let high = high_bits[y] & 1 << (7 - x) > 0;
-        let rgba = to_rgba(low, high);
-
-        // Get tile location in grid.
-        let tile_x = tile_num as usize % 16;
-        let tile_y = tile_num as usize / 16;
-
-        // Get absolute coords of the pixel in the frame.
-        let abs_x = offset_x + tile_x * 8 + x;
-        let abs_y = offset_y + tile_y * 8 + y;
-
-        // Get final pixel offset in framebuffer.
-        let offset = (abs_y * frame_width + abs_x) * 4;
-
-        // Write pixel to framebuffer.
-        frame[offset..offset + 4].copy_from_slice(&rgba[..]);
-    }
-}
-
-/// Turn a 2-bit pixel value into a greyscale RGBA pixel.
-fn to_rgba(low: bool, high: bool) -> [u8; 4] {
-    let v = match (low, high) {
-        (false, false) => 0x00,
-        (true, false) => 0x55,
-        (false, true) => 0xAA,
-        (true, true) => 0xFF,
-    };
-    [v, v, v, 0xFF]
 }
 
 /// The CPU can interact with the PPU via its registers, which are mapped into
@@ -283,4 +243,74 @@ fn read_ppuaddr(addr: &[Option<u8>; 2]) -> Address {
     let high = addr[0].unwrap_or(0);
     let low = addr[1].unwrap_or(0);
     Address::from([low, high])
+}
+
+/// An 8x8 tile from a pattern table.
+///
+/// The tile is represented by two arrays containing the low and high bits of
+/// each pixel respectively. Each byte in these arrays represents a row of 8
+/// pixels, so to getting a pixel's value requires reading the desired bit from
+/// both arrays and combining them into a 4-bit value.
+struct Tile {
+    low: [u8; 8],
+    high: [u8; 8],
+}
+
+impl Tile {
+    /// Get the 4-bit value of the pixel at the specified position in the tile.
+    fn get_pixel(&self, x: usize, y: usize) -> Pixel {
+        // Get bits for pixel and convert to RGBA. Note that the highest-order
+        // bit is considered the "first" bit, so the bit indexes are inverted.
+        let low = self.low[y] & 1 << (7 - x) > 0;
+        let high = self.high[y] & 1 << (7 - x) > 0;
+        Pixel::from_bits(low, high)
+    }
+
+    /// Draw this tile to a framebuffer at the specified pixel coordinates.
+    ///
+    /// This method makes no assumptions about frame size or tile alignment,
+    /// making it suitable for implementing debug functionality that might need
+    /// to draw tiles at nonstandard positions.
+    fn draw_at(&self, frame: &mut [u8], frame_width_px: usize, pos_x: usize, pos_y: usize) {
+        for x in 0..8 {
+            for y in 0..8 {
+                let rgba = self.get_pixel(x, y).to_rgba_greyscale();
+                let pos = (pos_y + y) * frame_width_px + pos_x + x;
+                let offset = pos * 4; // 4 bytes per RGBA pixel.
+                frame[offset..offset + 4].copy_from_slice(&rgba[..]);
+            }
+        }
+    }
+
+    /// Draw the tile to the framebuffer at the specified tile offset.
+    ///
+    /// Assumes that the screen is a 32 x 30 tile grid and the position is
+    /// specified as the tile's index in that grid (from 0 to 960).
+    fn draw(&self, frame: &mut [u8], pos: usize) {
+        let pos_x = pos % (FRAME_WIDTH / 8) * 8;
+        let pos_y = pos / (FRAME_WIDTH / 8) * 8;
+        self.draw_at(frame, FRAME_WIDTH, pos_x, pos_y);
+    }
+}
+
+/// A 4-bit pixel value from a Tile.
+struct Pixel(u8);
+
+impl Pixel {
+    /// Create a color from a low bit and a high bit.
+    fn from_bits(low: bool, high: bool) -> Self {
+        Self((high as u8) << 1 | low as u8)
+    }
+    /// Return a greyscale RGBA representation of this pixel. Allows drawing
+    /// pixels without palette information, which is useful for debugging.
+    fn to_rgba_greyscale(&self) -> [u8; 4] {
+        let v = match self.0 {
+            0 => 0x00,
+            1 => 0x55,
+            2 => 0xAA,
+            3 => 0xFF,
+            _ => unreachable!(),
+        };
+        [v, v, v, 0xFF]
+    }
 }

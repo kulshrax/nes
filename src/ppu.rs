@@ -17,14 +17,36 @@ const PPU_REG_ADDR_BITS: u8 = 3;
 pub const FRAME_WIDTH: usize = 256;
 pub const FRAME_HEIGHT: usize = 240;
 
+/// Array of 3-byte RGB color values corresponding to the colors the NES would
+/// output for a given 6-bit color index. Note that in a real NES, the PPU
+/// directly outputs an analog video signal, which means that there is no exact
+/// mapping between NES color indexes and specific RGB values. As such, the
+/// RGB values specified here are just approximations intended to best reproduce
+/// what each color would have looked like when displayed by a TV set.
 static NES_COLORS: &[u8] = include_bytes!("../data/FBX-Final.pal");
 
+/// Hardcoded greyscale palette used for testing.
 const GREYSCALE_PALETTE: Palette = Palette {
     background: 0x0F, // 0 0 0
     color1: 0x00,     // 84 84 84
     color2: 0x10,     // 152 150 152
     color3: 0x30,     // 236 238 236
 };
+
+// Palette locations in the PPU's address space.
+const BG_COLOR: Address = Address(0x3F00);
+static BG_PALETTES: [Address; 4] = [
+    Address(0x3F01),
+    Address(0x3F05),
+    Address(0x3F09),
+    Address(0x3F0D),
+];
+static SPRITE_PALETTES: [Address; 4] = [
+    Address(0x3F11),
+    Address(0x3F15),
+    Address(0x3F19),
+    Address(0x3F1D),
+];
 
 enum PpuRegister {
     Ctrl,
@@ -109,7 +131,11 @@ impl<M: PpuBus> Ppu<M> {
         for pos in 0..960 {
             let tile_num = self.mapper.ppu_load(&self.vram, table + pos as u16);
             let tile = self.load_tile(Address(0), tile_num);
-            tile.draw(frame, pos);
+
+            // TODO: Get palette index from attribute table.
+            let palette = self.load_palette(0, false);
+
+            tile.draw(frame, pos, palette);
         }
     }
 
@@ -133,7 +159,7 @@ impl<M: PpuBus> Ppu<M> {
 
                 // Load and draw tile.
                 let tile = self.load_tile(table_addr, tile_num as u8);
-                tile.draw_at(frame, FRAME_WIDTH, x, y);
+                tile.draw_at(frame, FRAME_WIDTH, x, y, GREYSCALE_PALETTE);
             }
         }
     }
@@ -153,6 +179,28 @@ impl<M: PpuBus> Ppu<M> {
             high[i] = self.mapper.ppu_load(&self.vram, base + i as u16 + 8u16);
         }
         Tile { low, high }
+    }
+
+    /// Load a background or sprite palette from the PPU's memory.
+    fn load_palette(&mut self, palette_num: u8, sprite: bool) -> Palette {
+        // The palette number is a 2-bit value.
+        assert!(palette_num < 5);
+
+        let palettes = if sprite { SPRITE_PALETTES } else { BG_PALETTES };
+
+        let addr = palettes[palette_num as usize];
+        let color1 = self.mapper.ppu_load(&self.vram, addr);
+        let color2 = self.mapper.ppu_load(&self.vram, addr + 1u16);
+        let color3 = self.mapper.ppu_load(&self.vram, addr + 2u16);
+
+        let background = self.mapper.ppu_load(&self.vram, BG_COLOR);
+
+        Palette {
+            background,
+            color1,
+            color2,
+            color3,
+        }
     }
 }
 
@@ -258,6 +306,7 @@ fn read_ppuaddr(addr: &[Option<u8>; 2]) -> Address {
 /// each pixel respectively. Each byte in these arrays represents a row of 8
 /// pixels, so to getting a pixel's value requires reading the desired bit from
 /// both arrays and combining them into a 4-bit value.
+#[derive(Debug, Copy, Clone)]
 struct Tile {
     low: [u8; 8],
     high: [u8; 8],
@@ -278,10 +327,17 @@ impl Tile {
     /// This method makes no assumptions about frame size or tile alignment,
     /// making it suitable for implementing debug functionality that might need
     /// to draw tiles at nonstandard positions.
-    fn draw_at(&self, frame: &mut [u8], frame_width_px: usize, pos_x: usize, pos_y: usize) {
+    fn draw_at(
+        &self,
+        frame: &mut [u8],
+        frame_width_px: usize,
+        pos_x: usize,
+        pos_y: usize,
+        palette: Palette,
+    ) {
         for x in 0..8 {
             for y in 0..8 {
-                let rgba = self.get_pixel(x, y).to_rgba(GREYSCALE_PALETTE);
+                let rgba = self.get_pixel(x, y).to_rgba(palette);
                 let pos = (pos_y + y) * frame_width_px + pos_x + x;
                 let offset = pos * 4; // 4 bytes per RGBA pixel.
                 frame[offset..offset + 4].copy_from_slice(&rgba[..]);
@@ -293,10 +349,10 @@ impl Tile {
     ///
     /// Assumes that the screen is a 32 x 30 tile grid and the position is
     /// specified as the tile's index in that grid (from 0 to 960).
-    fn draw(&self, frame: &mut [u8], pos: usize) {
+    fn draw(&self, frame: &mut [u8], pos: usize, palette: Palette) {
         let pos_x = pos % (FRAME_WIDTH / 8) * 8;
         let pos_y = pos / (FRAME_WIDTH / 8) * 8;
-        self.draw_at(frame, FRAME_WIDTH, pos_x, pos_y);
+        self.draw_at(frame, FRAME_WIDTH, pos_x, pos_y, palette);
     }
 }
 

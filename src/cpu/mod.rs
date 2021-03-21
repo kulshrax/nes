@@ -131,6 +131,12 @@ impl Cpu {
         &self.registers
     }
 
+    /// Manually set the CPU's program counter. Useful for testing.
+    pub fn set_pc(&mut self, addr: Address) {
+        log::trace!("Manually setting program counter: {}", addr);
+        self.registers.pc = addr;
+    }
+
     /// Fetch and execute a single instruction. Returns the the number of clock
     /// cycles taken to execute the instruction. Does not update the CPU's
     /// cycle counter; cycle tracking is handled by `Cpu::tick`.

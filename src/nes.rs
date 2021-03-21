@@ -1,3 +1,4 @@
+use std::thread;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -5,7 +6,7 @@ use winit_input_helper::WinitInputHelper;
 
 use crate::cpu::Cpu;
 use crate::mapper::{self, CpuMapper, PpuMapper};
-use crate::mem::{Memory, Ram};
+use crate::mem::{Address, Memory, Ram};
 use crate::ppu::{Ppu, FRAME_HEIGHT, FRAME_WIDTH};
 use crate::rom::Rom;
 use crate::ui::Ui;
@@ -35,6 +36,22 @@ impl Nes {
             ram,
             ppu,
             mapper,
+        }
+    }
+
+    pub fn step(&mut self) {
+        // Create a view of the CPU's addres space, including all memory-mapped devices.
+        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+
+        // Run the CPU.
+        self.cpu.tick(&mut memory);
+    }
+
+    pub fn run_headless(&mut self) {
+        self.cpu.set_pc(Address(0xC000));
+        loop {
+            self.step();
+            thread::sleep(Duration::from_millis(1000));
         }
     }
 }

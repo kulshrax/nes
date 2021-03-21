@@ -26,6 +26,7 @@ use crate::ui::Ui;
 enum Command {
     Run(RunArgs),
     RunCpu(RunCpuArgs),
+    RunHeadless(RunHeadlessArgs),
     ShowPattern(ShowPatternArgs),
     ShowHeader(ShowHeaderArgs),
 }
@@ -47,6 +48,13 @@ struct RunCpuArgs {
 }
 
 #[derive(Debug, StructOpt)]
+#[structopt(about = "Run a NES ROM file without video output")]
+struct RunHeadlessArgs {
+    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    rom: PathBuf,
+}
+
+#[derive(Debug, StructOpt)]
 #[structopt(about = "Display the pattern table from a ROM file")]
 struct ShowPatternArgs {
     #[structopt(parse(from_os_str), help = "Path to ROM file")]
@@ -65,6 +73,7 @@ fn main() -> Result<()> {
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
         Command::RunCpu(args) => cmd_run_cpu(args),
+        Command::RunHeadless(args) => cmd_run_headless(args),
         Command::ShowPattern(args) => cmd_show_pattern(args),
         Command::ShowHeader(args) => cmd_show_header(args),
     }
@@ -90,6 +99,16 @@ fn cmd_run_cpu(args: RunCpuArgs) -> Result<()> {
 
     let mut cpu = Cpu::new();
     cpu.run(&binary, args.start);
+
+    Ok(())
+}
+
+fn cmd_run_headless(args: RunHeadlessArgs) -> Result<()> {
+    log::info!("Loading ROM: {:?}", &args.rom);
+    let rom = Rom::load(&args.rom)?;
+    let mut nes = Nes::new(rom);
+
+    nes.run_headless();
 
     Ok(())
 }

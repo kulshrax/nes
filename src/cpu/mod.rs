@@ -76,6 +76,7 @@ pub struct Cpu {
     registers: Registers,
     irq_pending: bool,
     cycles_remaining: u8,
+    cycle: u64,
 }
 
 impl Cpu {
@@ -84,6 +85,7 @@ impl Cpu {
             registers: Registers::new(),
             irq_pending: false,
             cycles_remaining: 0,
+            cycle: 0,
         }
     }
 
@@ -130,7 +132,8 @@ impl Cpu {
     }
 
     /// Fetch and execute a single instruction. Returns the the number of clock
-    /// cycles taken to execute the instruction.
+    /// cycles taken to execute the instruction. Does not update the CPU's
+    /// cycle counter; cycle tracking is handled by `Cpu::tick`.
     pub fn step(&mut self, memory: &mut dyn Bus) -> u8 {
         // Save starting program counter.
         let pc = self.registers.pc;
@@ -168,6 +171,7 @@ impl Cpu {
     /// the CPU will "block" for the correct number of clock cycles, the actual
     /// effect of the instruction happens entirely on the first clock cycle.
     pub fn tick(&mut self, memory: &mut dyn Bus) {
+        self.cycle += 1;
         if self.cycles_remaining == 0 {
             self.cycles_remaining = self.step(memory) - 1;
         } else {
@@ -564,7 +568,6 @@ impl Cpu {
     /// Compare.
     fn cmp(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
-        log::info!("A: {}, M: {}", self.registers.a, value);
         let (res, overflowed) = self.registers.a.overflowing_sub(value);
         self.registers.p.set(Flags::CARRY, !overflowed);
         self.check_zero_or_negative(res);

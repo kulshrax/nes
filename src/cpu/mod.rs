@@ -186,6 +186,13 @@ impl Cpu {
         let low = memory.load(Address::from(RESET_VECTOR[0]));
         let high = memory.load(Address::from(RESET_VECTOR[1]));
         self.registers.pc = Address::from([low, high]);
+
+        // The reset sequence takes 7 cycles before fetching the instruction
+        // at the location specified by the reset vector. Note that we don't
+        // reset the cycle counter, since its main purpose is to allow comparing
+        // the cycle count against the external clock that is driving the CPU.
+        self.cycles_remaining = 0;
+        self.cycle += 7;
     }
 
     /// Interrupt request.
@@ -392,6 +399,10 @@ impl Cpu {
         let low = memory.load(Address::from(vector[0]));
         let high = memory.load(Address::from(vector[1]));
         self.registers.pc = Address::from([low, high]);
+
+        // Interrupts take 7 cycles before beginning execution of the interrupt
+        // handler code.
+        self.cycle += 7;
     }
 
     /// Get the current address of the next available memory location on the

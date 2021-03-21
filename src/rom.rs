@@ -12,14 +12,14 @@ const CHR_BANK_SIZE: usize = 8192; // 8 KiB
 
 #[derive(Debug)]
 pub struct Header {
-    num_prg_banks: u8,
-    num_chr_banks: u8,
-    num_prg_ram_banks: u8,
-    mirroring: Mirroring,
-    mapper: u8,
-    has_battery: bool,
-    has_trainer: bool,
-    is_ines_v2: bool,
+    pub num_prg_banks: u8,
+    pub num_chr_banks: u8,
+    pub num_prg_ram_banks: u8,
+    pub mirroring: Mirroring,
+    pub mapper: u8,
+    pub has_battery: bool,
+    pub has_trainer: bool,
+    pub is_ines_v2: bool,
 }
 
 impl Header {
@@ -60,7 +60,7 @@ impl Header {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Mirroring {
     Horizonal,
     Vertical,

@@ -1,6 +1,6 @@
 use crate::mem::{Address, Bus};
 use crate::ppu::{PpuBus, Vram, NAMETABLE_0_ADDR};
-use crate::rom::Rom;
+use crate::rom::{Mirroring, Rom};
 
 use super::Mapper;
 
@@ -11,8 +11,8 @@ impl Mapper for Mapper0 {
     type PpuMapper = PpuMapper0;
 
     fn from_rom(rom: Rom) -> (CpuMapper0, PpuMapper0) {
-        let Rom { prg, chr, .. } = rom;
-        (CpuMapper0::new(prg), PpuMapper0::new(chr))
+        let Rom { header, prg, chr } = rom;
+        (CpuMapper0::new(prg), PpuMapper0::new(chr, header.mirroring))
     }
 }
 
@@ -48,17 +48,21 @@ impl Bus for CpuMapper0 {
 
 pub(super) struct PpuMapper0 {
     chr: Vec<u8>,
+    _mirroring: Mirroring,
 }
 
 impl PpuMapper0 {
-    fn new(chr: Vec<u8>) -> Self {
+    fn new(chr: Vec<u8>, mirroring: Mirroring) -> Self {
         // This mapper directly maps the CHR RAM into the lower portion of the
         // PPU's address space, which means it must fit exactly in the space
         // reserved for the 2 pattern tables (4 KiB each, so 8 KiB total).
         // Nametable 0 is directly after the pattern tables, so use its base
         // address to check the size.
         assert!(chr.len() == NAMETABLE_0_ADDR.as_usize());
-        Self { chr }
+        Self {
+            chr,
+            _mirroring: mirroring,
+        }
     }
 }
 

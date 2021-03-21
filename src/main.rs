@@ -70,7 +70,7 @@ fn cmd_run(args: RunArgs) -> Result<()> {
 
 fn cmd_run_cpu(args: RunCpuArgs) -> Result<()> {
     if !args.binary.is_file() {
-        eprintln!("{:?} is not a file", &args.binary);
+        log::error!("{:?} is not a file", &args.binary);
         exit(1);
     }
     log::info!("Executing binary: {:?}", &args.binary);

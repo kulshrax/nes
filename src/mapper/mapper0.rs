@@ -11,7 +11,7 @@ impl Mapper for Mapper0 {
     type PpuMapper = PpuMapper0;
 
     fn from_rom(rom: Rom) -> (CpuMapper0, PpuMapper0) {
-        let Rom { prg, chr } = rom;
+        let Rom { prg, chr, .. } = rom;
         (CpuMapper0::new(prg), PpuMapper0::new(chr))
     }
 }

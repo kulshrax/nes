@@ -27,6 +27,7 @@ enum Command {
     Run(RunArgs),
     RunCpu(RunCpuArgs),
     ShowPattern(ShowPatternArgs),
+    ShowHeader(ShowHeaderArgs),
 }
 
 #[derive(Debug, StructOpt)]
@@ -52,12 +53,20 @@ struct ShowPatternArgs {
     rom: PathBuf,
 }
 
+#[derive(Debug, StructOpt)]
+#[structopt(about = "Display header information from a ROM file")]
+struct ShowHeaderArgs {
+    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    rom: PathBuf,
+}
+
 fn main() -> Result<()> {
     env_logger::init();
     match Command::from_args() {
         Command::Run(args) => cmd_run(args),
         Command::RunCpu(args) => cmd_run_cpu(args),
         Command::ShowPattern(args) => cmd_show_pattern(args),
+        Command::ShowHeader(args) => cmd_show_header(args),
     }
 }
 
@@ -91,4 +100,20 @@ fn cmd_show_pattern(args: ShowPatternArgs) -> Result<()> {
     let nes = Nes::new(rom);
     let ui = ShowPatternUi::new(nes);
     ui.run()
+}
+
+fn cmd_show_header(args: ShowHeaderArgs) -> Result<()> {
+    let rom = Rom::load(&args.rom)?;
+    log::info!("iNES 1.0 ROM header: {:#?}", &rom.header);
+    log::info!("First 8 bytes of PRG data: {:X?}", &rom.prg[..8]);
+    log::info!(
+        "Last 8 bytes of PRG data: {:X?}",
+        &rom.prg[rom.prg.len() - 8..]
+    );
+    log::info!("First 8 bytes of CHR data: {:X?}", &rom.chr[..8]);
+    log::info!(
+        "Last 8 bytes of CHR data: {:X?}",
+        &rom.chr[rom.chr.len() - 8..]
+    );
+    Ok(())
 }

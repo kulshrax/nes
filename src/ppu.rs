@@ -17,7 +17,14 @@ const PPU_REG_ADDR_BITS: u8 = 3;
 pub const FRAME_WIDTH: usize = 256;
 pub const FRAME_HEIGHT: usize = 240;
 
-static _PALETTE: &[u8] = include_bytes!("../data/FBX-Final.pal");
+static NES_COLORS: &[u8] = include_bytes!("../data/FBX-Final.pal");
+
+const GREYSCALE_PALETTE: Palette = Palette {
+    background: 0x0F, // 0 0 0
+    color1: 0x00,     // 84 84 84
+    color2: 0x10,     // 152 150 152
+    color3: 0x30,     // 236 238 236
+};
 
 enum PpuRegister {
     Ctrl,
@@ -274,7 +281,7 @@ impl Tile {
     fn draw_at(&self, frame: &mut [u8], frame_width_px: usize, pos_x: usize, pos_y: usize) {
         for x in 0..8 {
             for y in 0..8 {
-                let rgba = self.get_pixel(x, y).to_rgba_greyscale();
+                let rgba = self.get_pixel(x, y).to_rgba(GREYSCALE_PALETTE);
                 let pos = (pos_y + y) * frame_width_px + pos_x + x;
                 let offset = pos * 4; // 4 bytes per RGBA pixel.
                 frame[offset..offset + 4].copy_from_slice(&rgba[..]);
@@ -294,6 +301,7 @@ impl Tile {
 }
 
 /// A 4-bit pixel value from a Tile.
+#[derive(Debug, Copy, Clone)]
 struct Pixel(u8);
 
 impl Pixel {
@@ -301,16 +309,34 @@ impl Pixel {
     fn from_bits(low: bool, high: bool) -> Self {
         Self((high as u8) << 1 | low as u8)
     }
-    /// Return a greyscale RGBA representation of this pixel. Allows drawing
-    /// pixels without palette information, which is useful for debugging.
-    fn to_rgba_greyscale(&self) -> [u8; 4] {
-        let v = match self.0 {
-            0 => 0x00,
-            1 => 0x55,
-            2 => 0xAA,
-            3 => 0xFF,
+
+    /// Get this pixel's 6-bit color index using the given palette.
+    fn color(&self, palette: Palette) -> u8 {
+        match self.0 {
+            0 => palette.background,
+            1 => palette.color1,
+            2 => palette.color2,
+            3 => palette.color3,
             _ => unreachable!(),
-        };
-        [v, v, v, 0xFF]
+        }
     }
+
+    /// Get this pixel's RGBA value using the given palette.
+    fn to_rgba(&self, palette: Palette) -> [u8; 4] {
+        let color = self.color(palette) as usize;
+        let mut rgba = [0xFFu8; 4];
+        rgba[..3].copy_from_slice(&NES_COLORS[color * 3..color * 3 + 3]);
+        rgba
+    }
+}
+
+/// A palette value, consisting of a background color (which is shared by all
+/// palettes) and 3 other colors. The color values are used as indexes for
+/// looking up the color's RGB value from a NES palette file.
+#[derive(Debug, Copy, Clone)]
+struct Palette {
+    background: u8,
+    color1: u8,
+    color2: u8,
+    color3: u8,
 }

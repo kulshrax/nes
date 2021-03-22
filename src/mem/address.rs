@@ -100,7 +100,7 @@ impl Add<u8> for Address {
     type Output = Self;
 
     fn add(self, other: u8) -> Self {
-        Self(self.0 + other as u16)
+        Self(self.0.wrapping_add(other as u16))
     }
 }
 
@@ -108,7 +108,7 @@ impl Sub<u8> for Address {
     type Output = Self;
 
     fn sub(self, other: u8) -> Self {
-        Self(self.0 - other as u16)
+        Self(self.0.wrapping_sub(other as u16))
     }
 }
 
@@ -118,9 +118,9 @@ impl Add<i8> for Address {
     fn add(self, other: i8) -> Self {
         let other = other as i16;
         if other < 0 {
-            Self(self.0 - -other as u16)
+            Self(self.0.wrapping_sub(-other as u16))
         } else {
-            Self(self.0 + other as u16)
+            Self(self.0.wrapping_add(other as u16))
         }
     }
 }
@@ -130,31 +130,31 @@ impl Sub<i8> for Address {
 
     fn sub(self, other: i8) -> Self {
         if other < 0 {
-            Self(self.0 + -other as u16)
+            Self(self.0.wrapping_add(-other as u16))
         } else {
-            Self(self.0 - other as u16)
+            Self(self.0.wrapping_sub(other as u16))
         }
     }
 }
 
 impl AddAssign<u8> for Address {
     fn add_assign(&mut self, other: u8) {
-        self.0 += other as u16;
+        self.0 = self.0.wrapping_add(other as u16);
     }
 }
 
 impl SubAssign<u8> for Address {
     fn sub_assign(&mut self, other: u8) {
-        self.0 -= other as u16;
+        self.0 = self.0.wrapping_sub(other as u16);
     }
 }
 
 impl AddAssign<i8> for Address {
     fn add_assign(&mut self, other: i8) {
         if other < 0 {
-            self.0 -= -other as u16;
+            self.0 = self.0.wrapping_sub(-other as u16);
         } else {
-            self.0 += other as u16;
+            self.0 = self.0.wrapping_add(other as u16);
         }
     }
 }
@@ -162,9 +162,9 @@ impl AddAssign<i8> for Address {
 impl SubAssign<i8> for Address {
     fn sub_assign(&mut self, other: i8) {
         if other < 0 {
-            self.0 += -other as u16;
+            self.0 = self.0.wrapping_add(-other as u16);
         } else {
-            self.0 -= other as u16;
+            self.0 = self.0.wrapping_sub(other as u16);
         }
     }
 }
@@ -173,7 +173,7 @@ impl Add<u16> for Address {
     type Output = Self;
 
     fn add(self, other: u16) -> Self {
-        Self(self.0 + other)
+        Self(self.0.wrapping_add(other))
     }
 }
 
@@ -181,7 +181,7 @@ impl Sub<u16> for Address {
     type Output = Self;
 
     fn sub(self, other: u16) -> Self {
-        Self(self.0 - other)
+        Self(self.0.wrapping_sub(other))
     }
 }
 
@@ -191,9 +191,9 @@ impl Add<i16> for Address {
     fn add(self, other: i16) -> Self {
         let other = other as i16;
         if other < 0 {
-            Self(self.0 - -other as u16)
+            Self(self.0.wrapping_sub(-other as u16))
         } else {
-            Self(self.0 + other as u16)
+            Self(self.0.wrapping_add(other as u16))
         }
     }
 }
@@ -203,31 +203,31 @@ impl Sub<i16> for Address {
 
     fn sub(self, other: i16) -> Self {
         if other < 0 {
-            Self(self.0 + -other as u16)
+            Self(self.0.wrapping_add(-other as u16))
         } else {
-            Self(self.0 - other as u16)
+            Self(self.0.wrapping_sub(other as u16))
         }
     }
 }
 
 impl AddAssign<u16> for Address {
     fn add_assign(&mut self, other: u16) {
-        self.0 += other;
+        self.0 = self.0.wrapping_add(other);
     }
 }
 
 impl SubAssign<u16> for Address {
     fn sub_assign(&mut self, other: u16) {
-        self.0 -= other;
+        self.0 = self.0.wrapping_sub(other);
     }
 }
 
 impl AddAssign<i16> for Address {
     fn add_assign(&mut self, other: i16) {
         if other < 0 {
-            self.0 -= -other as u16;
+            self.0 = self.0.wrapping_sub(-other as u16);
         } else {
-            self.0 += other as u16;
+            self.0 = self.0.wrapping_add(other as u16);
         }
     }
 }
@@ -235,9 +235,9 @@ impl AddAssign<i16> for Address {
 impl SubAssign<i16> for Address {
     fn sub_assign(&mut self, other: i16) {
         if other < 0 {
-            self.0 += -other as u16;
+            self.0 = self.0.wrapping_add(-other as u16);
         } else {
-            self.0 -= other as u16;
+            self.0 = self.0.wrapping_sub(other as u16);
         }
     }
 }

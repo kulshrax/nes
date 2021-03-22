@@ -1,4 +1,3 @@
-use std::thread;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -51,7 +50,6 @@ impl Nes {
         self.cpu.set_pc(Address(0xC000));
         loop {
             self.step();
-            thread::sleep(Duration::from_millis(1000));
         }
     }
 }

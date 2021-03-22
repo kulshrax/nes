@@ -154,6 +154,14 @@ impl Cpu {
 
         let (instruction, opcode) = Instruction::fetch(memory, &mut self.registers.pc);
         self.exec(memory, instruction);
+
+        log::trace!(
+            "PC: {}; OP: {:#X}; Instruction: {:?}; Cycle: {}",
+            pc,
+            opcode,
+            instruction,
+            self.cycle
+        );
         log::trace!("Registers: {}", &self.registers);
 
         // Crash if we detect an infinite loop. This is useful for test ROMs
@@ -177,12 +185,12 @@ impl Cpu {
     /// the CPU will "block" for the correct number of clock cycles, the actual
     /// effect of the instruction happens entirely on the first clock cycle.
     pub fn tick(&mut self, memory: &mut dyn Bus) {
-        self.cycle += 1;
         if self.cycles_remaining == 0 {
             self.cycles_remaining = self.step(memory) - 1;
         } else {
             self.cycles_remaining -= 1;
         }
+        self.cycle += 1;
     }
 
     /// Reset the CPU by disabling interrupts and jumping to the location

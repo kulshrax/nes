@@ -437,13 +437,6 @@ impl Instruction {
             illegal => panic!("Illegal opcode at address {}: {:#X}", start_pc, illegal),
         };
 
-        log::trace!(
-            "PC: {}; OP: {:#X}; Instruction: {:?}",
-            start_pc,
-            opcode,
-            instruction
-        );
-
         (instruction, opcode)
     }
 }

@@ -89,26 +89,32 @@ impl<'a, M, P> Memory<'a, M, P> {
 impl<'a, M: Bus, P: PpuBus> Bus for Memory<'a, M, P> {
     fn load(&mut self, addr: Address) -> u8 {
         if addr < PPU_REG_START {
+            // Read from system RAM.
             self.ram.load(addr)
         } else if addr < IO_REG_START {
+            // Read from a memory-mapped PPU register.
             self.ppu.load(addr)
         } else if addr < CART_SPACE_START {
             // Read from an IO register.
             unimplemented!()
         } else {
+            // Read from the cartridge (via the mapper).
             self.mapper.load(addr)
         }
     }
 
     fn store(&mut self, addr: Address, value: u8) {
         if addr < PPU_REG_START {
+            // Write to system RAM.
             self.ram.store(addr, value);
         } else if addr < IO_REG_START {
+            // Write to a memory-mapped PPU register.
             self.ppu.store(addr, value);
         } else if addr < CART_SPACE_START {
             // Write to an IO register.
             unimplemented!()
         } else {
+            // Write to the cartidge memory (via the mapper).
             self.mapper.store(addr, value)
         }
     }

@@ -26,17 +26,22 @@ impl Address {
         let mask = (1 << n_bits) - 1;
         Address(self.0 & mask)
     }
+
+    /// Get the raw little-endian bytes of this address.
+    pub fn to_le_bytes(&self) -> [u8; 2] {
+        self.0.to_le_bytes()
+    }
 }
 
 impl fmt::Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:#06x}", self.0)
+        write!(f, "{:#06X}", self.0)
     }
 }
 
 impl fmt::Debug for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Address({:#06x})", self.0)
+        write!(f, "Address({:#06X})", self.0)
     }
 }
 

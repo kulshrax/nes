@@ -36,7 +36,7 @@ impl fmt::Display for Registers {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "A: {:#x}, X: {:#x}, Y: {:#x}, S: {:#x}, PC: {}, P: {}",
+            "A: {:#X}, X: {:#X}, Y: {:#X}, S: {:#X}, PC: {}, P: {}",
             self.a, self.x, self.y, self.s, self.pc, self.p
         )
     }
@@ -86,17 +86,12 @@ bitflags! {
         /// Indicates that the result of the last operation was negative.
         /// (Specifically, that the sign bit (i.e., bit 7) was set to 1.)
         const NEGATIVE = 1 << 7;
-
-        /// Bits 4 and 5 are both unused in the P register; however, for
-        /// correctness, these bits must always be present, since the original
-        /// CPU considers them to be always switched on.
-        const ALWAYS_ON = Self::BREAK.bits | Self::UNUSED.bits;
     }
 }
 
 impl Default for Flags {
     fn default() -> Self {
-        Flags::ALWAYS_ON
+        Flags::UNUSED
     }
 }
 
@@ -130,6 +125,10 @@ impl fmt::Display for Flags {
         } else {
             "-"
         };
-        write!(f, "[{}{}{}{}{}{}{}{}]", n, v, u, b, d, i, z, c)
+        write!(
+            f,
+            "{:#X} [{}{}{}{}{}{}{}{}]",
+            self.bits, n, v, u, b, d, i, z, c
+        )
     }
 }

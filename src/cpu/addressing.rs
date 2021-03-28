@@ -158,13 +158,23 @@ impl AddressingMode for AbsoluteY {
 /// addressing mode, the operand is the 16-bit address of the least significant
 /// byte of a little-endian 16-bit value which is then used as the target
 /// location for the operation.
+///
+/// Note that if the specified address has a low byte of 0xFF, the second read
+/// will wrap to the start of the page. (For example, if the specified address
+/// is 0xABFF, the target address bytes will be read from 0xABFF and 0xAB00.)
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Indirect(pub(super) Address);
 
 impl AddressingMode for Indirect {
     fn address(&self, memory: &mut dyn Bus, _registers: &Registers) -> Address {
         let low = memory.load(self.0);
-        let high = memory.load(self.0 + 1u8);
+
+        // Only increment the low byte of the address, thereby wrapping the
+        // read if we're at a page boundary.
+        let mut addr_bytes = self.0.to_le_bytes();
+        addr_bytes[0] = addr_bytes[0].wrapping_add(1);
+        let high = memory.load(addr_bytes.into());
+
         Address::from([low, high])
     }
 }

@@ -164,6 +164,12 @@ impl Cpu {
         );
         log::trace!("Registers: {}", &self.registers);
 
+        // Output to compare to nestest.
+        // println!(
+        //     "{:X} {:X} {:?} {} {}",
+        //     pc.0, opcode, instruction, &self.registers, self.cycle
+        // );
+
         // Crash if we detect an infinite loop. This is useful for test ROMs
         // that intentionally enter an infinite loop to signal a test failure.
         if pc == self.registers.pc {
@@ -202,11 +208,9 @@ impl Cpu {
         self.registers.pc = Address::from([low, high]);
 
         // The reset sequence takes 7 cycles before fetching the instruction
-        // at the location specified by the reset vector. Note that we don't
-        // reset the cycle counter, since its main purpose is to allow comparing
-        // the cycle count against the external clock that is driving the CPU.
+        // at the location specified by the reset vector.
+        self.cycle = 7;
         self.cycles_remaining = 0;
-        self.cycle += 7;
     }
 
     /// Interrupt request.
@@ -439,6 +443,14 @@ impl Cpu {
     fn pull_stack(&mut self, memory: &mut dyn Bus) -> u8 {
         self.registers.s = self.registers.s.wrapping_add(1);
         memory.load(self.stack())
+    }
+
+    /// Pull a value from the stack and use it to set the status register.
+    /// Notably, bits 4 and 5 are ignored in the pulled value; bit 4 is always
+    /// set to 0, and bit 5 is always set to 1 in the status register.
+    fn pull_flags(&mut self, memory: &mut dyn Bus) {
+        let bits = self.pull_stack(memory);
+        self.registers.p = (Flags::from_bits_truncate(bits) | Flags::UNUSED) & !Flags::BREAK;
     }
 
     /// Check if the given value is zero or negative and set the appropriate
@@ -723,7 +735,7 @@ impl Cpu {
 
     /// Push processor status.
     fn php(&mut self, memory: &mut dyn Bus) {
-        let flags = self.registers.p | Flags::ALWAYS_ON;
+        let flags = self.registers.p | Flags::UNUSED | Flags::BREAK;
         self.push_stack(memory, flags.bits());
     }
 
@@ -735,8 +747,7 @@ impl Cpu {
 
     /// Pull processor status.
     fn plp(&mut self, memory: &mut dyn Bus) {
-        let bits = self.pull_stack(memory);
-        self.registers.p = Flags::from_bits_truncate(bits) | Flags::ALWAYS_ON;
+        self.pull_flags(memory);
     }
 
     /// Rotate left.
@@ -776,9 +787,7 @@ impl Cpu {
 
     /// Return from interrupt.
     fn rti(&mut self, memory: &mut dyn Bus) {
-        let bits = self.pull_stack(memory);
-        self.registers.p = Flags::from_bits_truncate(bits) | Flags::ALWAYS_ON;
-
+        self.pull_flags(memory);
         let low = self.pull_stack(memory);
         let high = self.pull_stack(memory);
         self.registers.pc = Address::from([low, high]);

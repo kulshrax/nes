@@ -2,7 +2,7 @@ use crate::mem::{Address, Bus};
 
 use super::registers::Registers;
 
-pub(super) trait AddressingMode {
+pub(super) trait AddressingMode: Clone {
     /// Return the address of the target location specified by this addressing
     /// mode. This will panic for modes where this is not possible. (For
     /// example, attempting to get the address of a register or immediate value)

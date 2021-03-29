@@ -944,43 +944,56 @@ impl Cpu {
     }
 
     /// [UNDOCUMENTED] Decrement memory.
-    fn undoc_dcp(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("DCP");
+    fn undoc_dcp(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        let mut value = am.load(memory, &self.registers);
+        value = value.wrapping_sub(1);
+        am.store(memory, &mut self.registers, value);
     }
 
     /// [UNDOCUMENTED] Increment and subtract from accumulator.
-    fn undoc_isb(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("ISB");
+    fn undoc_isb(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        self.inc(am.clone(), memory);
+        self.sbc(am, memory);
     }
 
     /// [UNDOCUMENTED] Load accumulator and X register.
-    fn undoc_lax(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("LAX");
+    fn undoc_lax(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        let value = am.load(memory, &self.registers);
+        self.registers.a = value;
+        self.registers.x = value;
+        self.check_zero_or_negative(value);
     }
 
     /// [UNDOCUMENTED] Rotate left then AND with accumulator.
-    fn undoc_rla(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("RLA");
+    fn undoc_rla(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        self.rol(am.clone(), memory);
+        self.and(am, memory);
     }
 
     /// [UNDOCUMENTED] Rotate right then add to accumulator.
-    fn undoc_rra(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("RRA");
+    fn undoc_rra(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        self.ror(am.clone(), memory);
+        self.adc(am, memory);
     }
 
-    /// [UNDOCUMENTED] Rotate right then add to accumulator.
-    fn undoc_sax(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("SAX");
+    /// [UNDOCUMENTED] AND X register with accumulator and store result.
+    fn undoc_sax(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        self.registers.a &= self.registers.x;
+        let value = self.registers.a;
+        am.store(memory, &mut self.registers, value);
+        self.check_zero_or_negative(value);
     }
 
-    /// [UNDOCUMENTED] Rotate right then add to accumulator.
-    fn undoc_slo(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("SLO");
+    /// [UNDOCUMENTED] Shift left then OR with accumulator.
+    fn undoc_slo(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        self.asl(am.clone(), memory);
+        self.ora(am, memory);
     }
 
-    /// [UNDOCUMENTED] Rotate right then add to accumulator.
-    fn undoc_sre(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
-        todo!("SRE");
+    /// [UNDOCUMENTED] Shift right then XOR with accumulator.
+    fn undoc_sre(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
+        self.lsr(am.clone(), memory);
+        self.eor(am, memory);
     }
 }
 

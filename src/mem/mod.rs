@@ -98,7 +98,7 @@ impl<'a, M: Bus, P: PpuBus> Bus for Memory<'a, M, P> {
             self.ppu.load(addr)
         } else if addr < CART_SPACE_START {
             // Read from an IO register.
-            unimplemented!()
+            todo!("read from IO register {}", addr);
         } else {
             // Read from the cartridge (via the mapper).
             self.mapper.load(addr)
@@ -124,7 +124,7 @@ impl<'a, M: Bus, P: PpuBus> Bus for Memory<'a, M, P> {
             self.ppu.store(addr, value);
         } else if addr < CART_SPACE_START {
             // Write to an IO register.
-            unimplemented!()
+            log::error!("write to IO register {}: {}", addr, value);
         } else {
             // Write to the cartidge memory (via the mapper).
             self.mapper.store(addr, value)

@@ -7,20 +7,20 @@ use crate::mem::Address;
 #[derive(Default)]
 pub struct Registers {
     // Accumulator.
-    pub(super) a: u8,
+    pub a: u8,
 
     // Index registers.
-    pub(super) x: u8,
-    pub(super) y: u8,
+    pub x: u8,
+    pub y: u8,
 
     // Stack pointer.
-    pub(super) s: u8,
+    pub s: u8,
 
     // Program counter.
-    pub(super) pc: Address,
+    pub pc: Address,
 
     // Status register.
-    pub(super) p: Flags,
+    pub p: Flags,
 }
 
 impl Registers {
@@ -44,7 +44,7 @@ impl fmt::Display for Registers {
 
 bitflags! {
     /// Values corresponding to the bit flags stored in the status (P) register.
-    pub(super) struct Flags: u8 {
+    pub struct Flags: u8 {
         /// Indicates that the last operation resulted in an overflow from bit 8
         /// or an underflow from bit 0.
         const CARRY = 1;

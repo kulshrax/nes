@@ -124,7 +124,7 @@ impl Cpu {
     }
 
     /// Examine the current state of the CPU's registers.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn registers(&self) -> &Registers {
         &self.registers
     }
@@ -154,19 +154,13 @@ impl Cpu {
         self.exec(memory, instruction);
 
         log::trace!(
-            "PC: {}; OP: {:#X}; Instruction: {:?}; Cycle: {}",
+            "PC: {}; OP: {:#X}; Instruction: {:X?}; Cycle: {}",
             pc,
             opcode,
             instruction,
             self.cycle
         );
         log::trace!("Registers: {}", &self.registers);
-
-        // Output to compare to nestest.
-        // println!(
-        //     "{:X} {:X} {:?} {} {}",
-        //     pc.0, opcode, instruction, &self.registers, self.cycle
-        // );
 
         // Crash if we detect an infinite loop. This is useful for test ROMs
         // that intentionally enter an infinite loop to signal a test failure.
@@ -945,9 +939,8 @@ impl Cpu {
 
     /// [UNDOCUMENTED] Decrement memory.
     fn undoc_dcp(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
-        let mut value = am.load(memory, &self.registers);
-        value = value.wrapping_sub(1);
-        am.store(memory, &mut self.registers, value);
+        self.dec(am.clone(), memory);
+        self.cmp(am, memory);
     }
 
     /// [UNDOCUMENTED] Increment and subtract from accumulator.
@@ -958,10 +951,8 @@ impl Cpu {
 
     /// [UNDOCUMENTED] Load accumulator and X register.
     fn undoc_lax(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
-        let value = am.load(memory, &self.registers);
-        self.registers.a = value;
-        self.registers.x = value;
-        self.check_zero_or_negative(value);
+        self.lda(am.clone(), memory);
+        self.ldx(am, memory);
     }
 
     /// [UNDOCUMENTED] Rotate left then AND with accumulator.
@@ -978,10 +969,8 @@ impl Cpu {
 
     /// [UNDOCUMENTED] AND X register with accumulator and store result.
     fn undoc_sax(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
-        self.registers.a &= self.registers.x;
-        let value = self.registers.a;
+        let value = self.registers.a & self.registers.x;
         am.store(memory, &mut self.registers, value);
-        self.check_zero_or_negative(value);
     }
 
     /// [UNDOCUMENTED] Shift left then OR with accumulator.

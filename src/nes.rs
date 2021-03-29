@@ -98,3 +98,55 @@ impl Ui for ShowPatternUi {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::collections::VecDeque;
+    use std::env;
+    use std::path::PathBuf;
+
+    use crate::rom::Rom;
+
+    #[test]
+    fn nestest() {
+        let manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR")
+            .expect("CARGO_MANIFEST_DIR environment variable not set")
+            .into();
+
+        // Load the "nestest" ROM, which is a comprehensive CPU test.
+        let nestest = manifest_dir.join("test/roms/nestest.nes");
+        let rom = Rom::load(nestest).expect("Failed to load nestest ROM");
+        let mut nes = Nes::new(rom);
+
+        // Manually set the starting address to 0xC000, which is the intended
+        // entry point for running the ROM in a headless/automated context.
+        nes.cpu.set_pc(Address(0xC000));
+
+        // Load a log file containing the expected program counter values for
+        // each step of executing the test. This log is derived from a run of
+        // this ROM on the Nintendulator emulator, whose CPU is known to work
+        // correctly.
+        //
+        // The log file loaded here only contains program counter values. It was
+        // derived from a log ("nestest.log") obtained from the [NesDev wiki]
+        // which shows the full CPU state at each step. A copy of this log is
+        // included in this repo for reference/debugging purposes.
+        //
+        // [NesDev wiki]: https://wiki.nesdev.com/w/index.php/Emulator_tests
+        let mut expected_pcs = VecDeque::new();
+        let log = include_str!("../test/logs/nestest_pc.log");
+        for line in log.lines() {
+            expected_pcs.push_back(line.parse().unwrap());
+        }
+
+        // Run the CPU until we reach the end of the log.
+        while let Some(expected) = expected_pcs.pop_front() {
+            assert_eq!(nes.cpu.registers().pc, expected);
+            let mut memory = Memory::new(&mut nes.ram, &mut nes.ppu, &mut nes.mapper);
+            // Don't check cycle timings.
+            let _ = nes.cpu.step(&mut memory);
+        }
+    }
+}

@@ -6,10 +6,8 @@
 //! (APU) for audio generation.
 //!
 //! This module implements an emulator for the MOS 6502, supporting all of the
-//! official opcodes in the CPU's instruction set. (Some NES games rely on
-//! unofficial opcodes outside of the documented instruction set; these games
-//! will not work with this emulator, as this implementation treats unofficial
-//! opcodes as illegal instructions.)
+//! official opcodes in the CPU's instruction set, plus some (though not all)
+//! undocumented instructions as well.
 //!
 //! Many thanks to Andrew Jacobs, whose introductory guide to the MOS 6502
 //! (http://www.obelisk.me.uk/6502/) was an invaluable resource for this
@@ -331,7 +329,7 @@ impl Cpu {
             LsrZX(am) => self.lsr(am, memory),
             LsrA(am) => self.lsr(am, memory),
             LsrAX(am) => self.lsr(am, memory),
-            Nop => self.nop(),
+            Nop => {}
             OraI(am) => self.ora(am, memory),
             OraZ(am) => self.ora(am, memory),
             OraZX(am) => self.ora(am, memory),
@@ -386,6 +384,61 @@ impl Cpu {
             Txa => self.txa(),
             Txs => self.txs(),
             Tya => self.tya(),
+            UDcpZ(am) => self.undoc_dcp(am, memory),
+            UDcpZX(am) => self.undoc_dcp(am, memory),
+            UDcpA(am) => self.undoc_dcp(am, memory),
+            UDcpAX(am) => self.undoc_dcp(am, memory),
+            UDcpAY(am) => self.undoc_dcp(am, memory),
+            UDcpIX(am) => self.undoc_dcp(am, memory),
+            UDcpIY(am) => self.undoc_dcp(am, memory),
+            UIsbZ(am) => self.undoc_isb(am, memory),
+            UIsbZX(am) => self.undoc_isb(am, memory),
+            UIsbA(am) => self.undoc_isb(am, memory),
+            UIsbAX(am) => self.undoc_isb(am, memory),
+            UIsbAY(am) => self.undoc_isb(am, memory),
+            UIsbIX(am) => self.undoc_isb(am, memory),
+            UIsbIY(am) => self.undoc_isb(am, memory),
+            ULaxZ(am) => self.undoc_lax(am, memory),
+            ULaxZY(am) => self.undoc_lax(am, memory),
+            ULaxA(am) => self.undoc_lax(am, memory),
+            ULaxAY(am) => self.undoc_lax(am, memory),
+            ULaxIX(am) => self.undoc_lax(am, memory),
+            ULaxIY(am) => self.undoc_lax(am, memory),
+            UNop | UNopI(_) | UNopZ(_) | UNopZX(_) | UNopA(_) | UNopAX(_) => {}
+            URlaZ(am) => self.undoc_rla(am, memory),
+            URlaZX(am) => self.undoc_rla(am, memory),
+            URlaA(am) => self.undoc_rla(am, memory),
+            URlaAX(am) => self.undoc_rla(am, memory),
+            URlaAY(am) => self.undoc_rla(am, memory),
+            URlaIX(am) => self.undoc_rla(am, memory),
+            URlaIY(am) => self.undoc_rla(am, memory),
+            URraZ(am) => self.undoc_rra(am, memory),
+            URraZX(am) => self.undoc_rra(am, memory),
+            URraA(am) => self.undoc_rra(am, memory),
+            URraAX(am) => self.undoc_rra(am, memory),
+            URraAY(am) => self.undoc_rra(am, memory),
+            URraIX(am) => self.undoc_rra(am, memory),
+            URraIY(am) => self.undoc_rra(am, memory),
+            USaxZ(am) => self.undoc_sax(am, memory),
+            USaxZY(am) => self.undoc_sax(am, memory),
+            USaxA(am) => self.undoc_sax(am, memory),
+            USaxIX(am) => self.undoc_sax(am, memory),
+            USbcI(am) => self.sbc(am, memory), // Identical to legal SBC.
+            USloZ(am) => self.undoc_slo(am, memory),
+            USloZX(am) => self.undoc_slo(am, memory),
+            USloA(am) => self.undoc_slo(am, memory),
+            USloAX(am) => self.undoc_slo(am, memory),
+            USloAY(am) => self.undoc_slo(am, memory),
+            USloIX(am) => self.undoc_slo(am, memory),
+            USloIY(am) => self.undoc_slo(am, memory),
+            USreZ(am) => self.undoc_sre(am, memory),
+            USreZX(am) => self.undoc_sre(am, memory),
+            USreA(am) => self.undoc_sre(am, memory),
+            USreAX(am) => self.undoc_sre(am, memory),
+            USreAY(am) => self.undoc_sre(am, memory),
+            USreIX(am) => self.undoc_sre(am, memory),
+            USreIY(am) => self.undoc_sre(am, memory),
+            UStp => panic!("CPU halted due to (illegal) STP instruction"),
         }
     }
 
@@ -718,9 +771,6 @@ impl Cpu {
         self.check_zero_or_negative(res);
     }
 
-    /// No operation.
-    fn nop(&mut self) {}
-
     /// Logical inclusive OR.
     fn ora(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         let value = am.load(memory, &self.registers);
@@ -891,6 +941,46 @@ impl Cpu {
         let y = self.registers.y;
         self.registers.a = y;
         self.check_zero_or_negative(y);
+    }
+
+    /// [UNDOCUMENTED] Decrement memory.
+    fn undoc_dcp(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("DCP");
+    }
+
+    /// [UNDOCUMENTED] Increment and subtract from accumulator.
+    fn undoc_isb(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("ISB");
+    }
+
+    /// [UNDOCUMENTED] Load accumulator and X register.
+    fn undoc_lax(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("LAX");
+    }
+
+    /// [UNDOCUMENTED] Rotate left then AND with accumulator.
+    fn undoc_rla(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("RLA");
+    }
+
+    /// [UNDOCUMENTED] Rotate right then add to accumulator.
+    fn undoc_rra(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("RRA");
+    }
+
+    /// [UNDOCUMENTED] Rotate right then add to accumulator.
+    fn undoc_sax(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("SAX");
+    }
+
+    /// [UNDOCUMENTED] Rotate right then add to accumulator.
+    fn undoc_slo(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("SLO");
+    }
+
+    /// [UNDOCUMENTED] Rotate right then add to accumulator.
+    fn undoc_sre(&mut self, _am: impl AddressingMode, _memory: &mut dyn Bus) {
+        todo!("SRE");
     }
 }
 

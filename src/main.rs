@@ -54,6 +54,8 @@ struct RunCpuArgs {
 struct RunHeadlessArgs {
     #[structopt(parse(from_os_str), help = "Path to ROM file")]
     rom: PathBuf,
+    #[structopt(help = "Address at which to start execution")]
+    start: Option<Address>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -109,9 +111,7 @@ fn cmd_run_headless(args: RunHeadlessArgs) -> Result<()> {
     log::info!("Loading ROM: {:?}", &args.rom);
     let rom = Rom::load(&args.rom)?;
     let mut nes = Nes::new(rom);
-
-    nes.run_headless();
-
+    nes.run_cpu(args.start);
     Ok(())
 }
 

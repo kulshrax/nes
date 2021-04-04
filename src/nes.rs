@@ -38,18 +38,14 @@ impl Nes {
         }
     }
 
-    pub fn step(&mut self) {
-        // Create a view of the CPU's addres space, including all memory-mapped devices.
-        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
-
-        // Run the CPU.
-        self.cpu.tick(&mut memory);
-    }
-
-    pub fn run_headless(&mut self) {
-        self.cpu.set_pc(Address(0xC000));
+    /// Run the CPU only without any visual output.
+    pub fn run_cpu(&mut self, start: Option<Address>) {
+        if let Some(start) = start {
+            self.cpu.set_pc(start);
+        }
         loop {
-            self.step();
+            let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+            self.cpu.step(&mut memory);
         }
     }
 }

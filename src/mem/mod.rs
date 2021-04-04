@@ -11,8 +11,6 @@ const PPU_REG_START: Address = Address(0x2000);
 const IO_REG_START: Address = Address(0x4000);
 const CART_SPACE_START: Address = Address(0x4020);
 
-const NESTEST_RESULT: [Address; 2] = [Address(0x0002), Address(0x0003)];
-
 /// Trait representing the CPU's address bus. The actual destination of loads
 /// and stores are mapped by hardware to several possible locations, including
 /// the NES's RAM, the PPU, various IO registers, or the cartridge, which in
@@ -106,16 +104,6 @@ impl<'a, M: Bus, P: PpuBus> Bus for Memory<'a, M, P> {
     }
 
     fn store(&mut self, addr: Address, value: u8) {
-        // The nestest test rom reports results by writing to a fixed location
-        // in memory. Log writes to those addresses for debugging.
-        if NESTEST_RESULT.contains(&addr) {
-            log::error!("nesttest result: {} {:X}", addr, value);
-        }
-
-        if [Address(0x2FF), Address(0x300), Address(0x200)].contains(&addr) {
-            log::error!("write to {}: {:X}", addr, value);
-        }
-
         if addr < PPU_REG_START {
             // Write to system RAM.
             self.ram.store(addr, value);

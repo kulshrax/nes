@@ -127,18 +127,14 @@ mod tests {
         // Load a log file containing the expected program counter values for
         // each step of executing the test. This log is derived from a run of
         // this ROM on the Nintendulator emulator, whose CPU is known to work
-        // correctly.
-        //
-        // The log file loaded here only contains program counter values. It was
-        // derived from a log ("nestest.log") obtained from the [NesDev wiki]
-        // which shows the full CPU state at each step. A copy of this log is
-        // included in this repo for reference/debugging purposes.
+        // correctly. The log was obtained from the [NesDev wiki].
         //
         // [NesDev wiki]: https://wiki.nesdev.com/w/index.php/Emulator_tests
         let mut expected_pcs = VecDeque::new();
-        let log = include_str!("../test/logs/nestest_pc.log");
+        let log = include_str!("../test/logs/nestest.log");
         for line in log.lines() {
-            expected_pcs.push_back(line.parse().unwrap());
+            // The first 4 charcters of each line are program counter values.
+            expected_pcs.push_back(line[..4].parse().unwrap());
         }
 
         // Run the CPU until we reach the end of the log.

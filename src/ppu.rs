@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::mem::{Address, Bus};
 
 pub const VRAM_SIZE: usize = 2048;
@@ -48,6 +50,7 @@ static SPRITE_PALETTES: [Address; 4] = [
     Address(0x3F1D),
 ];
 
+#[derive(Debug)]
 enum PpuRegister {
     Ctrl,
     Mask,
@@ -57,6 +60,22 @@ enum PpuRegister {
     Scroll,
     Addr,
     Data,
+}
+
+impl fmt::Display for PpuRegister {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use PpuRegister::*;
+        match self {
+            Ctrl => write!(f, "PPUCTRL"),
+            Mask => write!(f, "PPUMASK"),
+            Status => write!(f, "PPUSTATUS"),
+            OamAddr => write!(f, "OAMADDR"),
+            OamData => write!(f, "OAMDATA"),
+            Scroll => write!(f, "PPUSCROLL"),
+            Addr => write!(f, "PPUADDR"),
+            Data => write!(f, "PPUDATA"),
+        }
+    }
 }
 
 impl From<Address> for PpuRegister {
@@ -237,6 +256,12 @@ impl<M: PpuBus> Bus for Ppu<M> {
             _ => self.registers.most_recent_value,
         };
 
+        log::debug!(
+            "Read from PPU register {}: {:#X}",
+            PpuRegister::from(addr),
+            value
+        );
+
         self.registers.most_recent_value = value;
 
         value
@@ -245,11 +270,20 @@ impl<M: PpuBus> Bus for Ppu<M> {
     fn store(&mut self, addr: Address, value: u8) {
         use PpuRegister::*;
 
+        log::debug!(
+            "Write to PPU register {}: {:#X}",
+            PpuRegister::from(addr),
+            value
+        );
+
         self.registers.most_recent_value = value;
         match addr.into() {
             Ctrl => self.registers.ctrl = value,
             Mask => self.registers.mask = value,
-            Status => {} // Status register is read-only.
+            Status => {
+                // Status register is read-only.
+                log::debug!("Attempted write to PPUSTATUS register: {:#X}", value);
+            }
             OamAddr => self.registers.oam_addr = value,
             OamData => self.oam[self.registers.oam_addr as usize] = value,
             Scroll => double_write(&mut self.registers.scroll, value),
@@ -305,7 +339,7 @@ fn read_ppuaddr(addr: &[Option<u8>; 2]) -> Address {
 /// The tile is represented by two arrays containing the low and high bits of
 /// each pixel respectively. Each byte in these arrays represents a row of 8
 /// pixels, so to getting a pixel's value requires reading the desired bit from
-/// both arrays and combining them into a 4-bit value.
+/// both arrays and combining them into a 2-bit value.
 #[derive(Debug, Copy, Clone)]
 struct Tile {
     low: [u8; 8],
@@ -313,7 +347,7 @@ struct Tile {
 }
 
 impl Tile {
-    /// Get the 4-bit value of the pixel at the specified position in the tile.
+    /// Get the 2-bit value of the pixel at the specified position in the tile.
     fn get_pixel(&self, x: usize, y: usize) -> Pixel {
         // Get bits for pixel and convert to RGBA. Note that the highest-order
         // bit is considered the "first" bit, so the bit indexes are inverted.
@@ -356,7 +390,7 @@ impl Tile {
     }
 }
 
-/// A 4-bit pixel value from a Tile.
+/// A 2-bit pixel value from a Tile.
 #[derive(Debug, Copy, Clone)]
 struct Pixel(u8);
 

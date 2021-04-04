@@ -236,7 +236,15 @@ impl<M: PpuBus> Bus for Ppu<M> {
                 // registers.
                 self.registers.scroll = [None, None];
                 self.registers.addr = [None, None];
-                self.registers.status
+
+                // Lower 5 bits of status register are unused, so reading them
+                // will return the residual contents of the last read/write.
+                let value = self.registers.status | (0xE0 & self.registers.most_recent_value);
+
+                // Reading the status register also clears bit 7.
+                self.registers.status &= 0x7F;
+
+                value
             }
             OamData => self.oam[self.registers.oam_addr as usize],
             Data => {
@@ -282,7 +290,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
             Mask => self.registers.mask = value,
             Status => {
                 // Status register is read-only.
-                log::debug!("Attempted write to PPUSTATUS register: {:#X}", value);
+                log::error!("Attempted write to PPUSTATUS register: {:#X}", value);
             }
             OamAddr => self.registers.oam_addr = value,
             OamData => self.oam[self.registers.oam_addr as usize] = value,

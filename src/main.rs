@@ -45,6 +45,8 @@ struct RunCpuArgs {
     binary: PathBuf,
     #[structopt(help = "Address at which to start execution")]
     start: Option<Address>,
+    #[structopt(help = "Address at which to end execution")]
+    end: Option<Address>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -98,7 +100,7 @@ fn cmd_run_cpu(args: RunCpuArgs) -> Result<()> {
     let _ = file.read_to_end(&mut binary)?;
 
     let mut cpu = Cpu::new();
-    cpu.run(&binary, args.start);
+    cpu.run(&binary, args.start, args.end);
 
     Ok(())
 }

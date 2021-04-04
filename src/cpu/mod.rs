@@ -95,8 +95,10 @@ impl Cpu {
     /// If no start address is specified, execution will begin from the address
     /// specified in the reset vector contained in the binary itself.
     ///
-    /// This function does not return.
-    pub fn run(&mut self, binary: &[u8], start: Option<Address>) {
+    /// If an end address is specified, this function will return if and when
+    /// the program counter reaches that address. If not specified, the function
+    /// will not return.
+    pub fn run(&mut self, binary: &[u8], start: Option<Address>, end: Option<Address>) {
         // Copy the binary into a 16-bit address space.
         let mut memory = [0u8; 0x10000];
         let n = cmp::min(binary.len(), 0x10000); // Truncate binary if too big.
@@ -107,8 +109,9 @@ impl Cpu {
             self.set_reset_vector(&mut memory, start);
         }
 
+        // Loop until we hit the end address (or forever if not specified).
         self.reset(&mut memory);
-        loop {
+        while end.map_or(true, |end| self.registers.pc != end) {
             // Note that we don't keep track of cycle timing here since the
             // CPU is running in isolation.
             let _ = self.step(&mut memory);
@@ -993,4 +996,30 @@ impl Cpu {
 #[inline]
 fn twos_complement_overflow(n: u8, m: u8, res: u8) -> bool {
     (n ^ res) & (m ^ res) & (1 << 7) > 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// This test runs Klaus Dormann's 6502 test suite.
+    ///
+    /// Notably, the binary used here has been assebled with the decimal mode
+    /// test disabled (since the NES's CPU does not support decimal mode).
+    ///
+    /// If a test fails, the program will enter an infinite loop (the address of
+    /// which will specify which test failed when compared to the listing file).
+    /// The emulated CPU will panic upon detecting an infinite loop and report
+    /// the program counter value to assist with debugging.
+    ///
+    /// Upon successfull completion, the program would normally enter an
+    /// infinite loop at address 0x3699. This test checks for this and returns
+    ///
+    /// https://github.com/Klaus2m5/6502_65C02_functional_tests
+    #[test]
+    fn cpu_functional_test() {
+        let binary = include_bytes!("../../test/6502/6502_functional_test_padded.bin");
+        let mut cpu = Cpu::new();
+        cpu.run(&binary[..], Some(Address(0x400)), Some(Address(0x3699)));
+    }
 }

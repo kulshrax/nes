@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{bail, Context, Error};
+use anyhow::{anyhow, bail, Context, Error};
 use hex::FromHex;
 
 #[derive(Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
@@ -70,28 +70,23 @@ impl From<[u8; 2]> for Address {
 impl FromStr for Address {
     type Err = Error;
 
-    fn from_str(addr: &str) -> Result<Self, Self::Err> {
-        Ok(Address(match addr.strip_prefix("0x") {
-            // Parse has hex.
-            Some(hex) => {
-                // Ensure the input string is 4 bytes long.
-                let hex = match hex.len() {
-                    0 => bail!("Empty address"),
-                    1 => Cow::from(format!("000{}", hex)),
-                    2 => Cow::from(format!("00{}", hex)),
-                    3 => Cow::from(format!("0{}", hex)),
-                    4 => Cow::from(hex),
-                    _ => bail!("Address is longer than 16 bits: {:?}", addr),
-                };
-                <[u8; 2]>::from_hex(hex.as_ref())
-                    .map(u16::from_be_bytes)
-                    .with_context(|| format!("Invalid hex address: {:?}", addr))?
-            }
-            // Parse as decimal.
-            None => addr
-                .parse()
-                .with_context(|| format!("Invalid address: {:?}", addr))?,
-        }))
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Ensure the input string is 4 bytes long.
+        let hex = s.strip_prefix("0x").unwrap_or(s);
+        let hex = match hex.len() {
+            0 => bail!("Empty address"),
+            1 => Cow::from(format!("000{}", hex)),
+            2 => Cow::from(format!("00{}", hex)),
+            3 => Cow::from(format!("0{}", hex)),
+            4 => Cow::from(hex),
+            _ => bail!("Address is longer than 16 bits: {:?}", s),
+        };
+
+        let addr = <[u8; 2]>::from_hex(hex.as_ref())
+            .map(u16::from_be_bytes)
+            .with_context(|| anyhow!("Invalid hex address: {:?}", s))?;
+
+        Ok(Address(addr))
     }
 }
 
@@ -255,26 +250,23 @@ mod tests {
 
     #[test]
     fn test_address_parsing() -> Result<()> {
-        let hex: Address = "0x0400".parse()?;
-        assert_eq!(hex, Address(0x400));
+        let addr: Address = "0x0400".parse()?;
+        assert_eq!(addr, Address(0x400));
 
-        let odd_hex: Address = "0x400".parse()?;
-        assert_eq!(odd_hex, Address(0x400));
+        let truncated: Address = "0x400".parse()?;
+        assert_eq!(truncated, Address(0x400));
 
-        let short_hex: Address = "0x42".parse()?;
-        assert_eq!(short_hex, Address(0x42));
+        let one_byte: Address = "0x42".parse()?;
+        assert_eq!(one_byte, Address(0x42));
 
-        let odd_short_hex: Address = "0x042".parse()?;
-        assert_eq!(odd_short_hex, Address(0x042));
+        let truncated_one_byte: Address = "0x042".parse()?;
+        assert_eq!(truncated_one_byte, Address(0x042));
 
-        let decimal: Address = "400".parse()?;
-        assert_eq!(decimal, Address(400));
+        let no_hex_prefix: Address = "400".parse()?;
+        assert_eq!(no_hex_prefix, Address(0x400));
 
-        let too_big_hex: Result<Address> = "0xDEADBEEF".parse();
-        assert!(too_big_hex.is_err());
-
-        let too_big_decimal: Result<Address> = "123456789".parse();
-        assert!(too_big_decimal.is_err());
+        let too_big: Result<Address> = "0xDEADBEEF".parse();
+        assert!(too_big.is_err());
 
         let not_a_number: Result<Address> = "invalid".parse();
         assert!(not_a_number.is_err());

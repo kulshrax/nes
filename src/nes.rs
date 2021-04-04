@@ -116,7 +116,7 @@ mod tests {
             .into();
 
         // Load the "nestest" ROM, which is a comprehensive CPU test.
-        let nestest = manifest_dir.join("test/roms/nestest.nes");
+        let nestest = manifest_dir.join("data/nestest/nestest.nes");
         let rom = Rom::load(nestest).expect("Failed to load nestest ROM");
         let mut nes = Nes::new(rom);
 
@@ -131,7 +131,7 @@ mod tests {
         //
         // [NesDev wiki]: https://wiki.nesdev.com/w/index.php/Emulator_tests
         let mut expected_pcs = VecDeque::new();
-        let log = include_str!("../test/logs/nestest.log");
+        let log = include_str!("../data/nestest/nestest.log");
         for line in log.lines() {
             // The first 4 charcters of each line are program counter values.
             expected_pcs.push_back(line[..4].parse().unwrap());

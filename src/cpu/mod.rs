@@ -1018,7 +1018,7 @@ mod tests {
     /// https://github.com/Klaus2m5/6502_65C02_functional_tests
     #[test]
     fn cpu_functional_test() {
-        let binary = include_bytes!("../../test/6502/6502_functional_test_padded.bin");
+        let binary = include_bytes!("../../data/6502/6502_functional_test_padded.bin");
         let mut cpu = Cpu::new();
         cpu.run(&binary[..], Some(Address(0x400)), Some(Address(0x3699)));
     }

@@ -10,6 +10,8 @@ use crate::ppu::{Ppu, FRAME_HEIGHT, FRAME_WIDTH};
 use crate::rom::Rom;
 use crate::ui::Ui;
 
+const CPU_CYCLES_PER_FRAME: usize = 29781;
+
 pub struct Nes {
     cpu: Cpu,
     ram: Ram,
@@ -48,15 +50,11 @@ impl Nes {
             self.cpu.step(&mut memory);
         }
     }
-}
 
-impl Ui for Nes {
-    fn size(&self) -> (u32, u32) {
-        (FRAME_WIDTH as u32, FRAME_HEIGHT as u32)
-    }
-
-    fn update(&mut self, frame: &mut [u8], _input: &WinitInputHelper, _dt: Duration) -> Result<()> {
-        for _ in 0..1000 {
+    /// Run the system for the duration of a single frame, writing the contents
+    /// of the new frame to the give frame buffer.
+    pub fn run_one_frame(&mut self, frame: &mut [u8], _input: &WinitInputHelper) {
+        for _ in 0..CPU_CYCLES_PER_FRAME {
             // Create a view of the CPU's addres space, including all memory-mapped devices.
             let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
 
@@ -68,6 +66,16 @@ impl Ui for Nes {
                 self.ppu.tick(frame);
             }
         }
+    }
+}
+
+impl Ui for Nes {
+    fn size(&self) -> (u32, u32) {
+        (FRAME_WIDTH as u32, FRAME_HEIGHT as u32)
+    }
+
+    fn update(&mut self, frame: &mut [u8], input: &WinitInputHelper, _dt: Duration) -> Result<()> {
+        self.run_one_frame(frame, input);
         Ok(())
     }
 }

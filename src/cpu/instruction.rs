@@ -276,7 +276,7 @@ pub(super) enum Instruction {
     // games actually use these instrictions, many emulator test suites (such as
     // nestest) do check that these opcodes work correctly.
     //
-    // All undocumented instructions are prefixed with 'U', which conventiently
+    // All undocumented instructions are prefixed with 'U', which conveniently
     // causes them to be lexographically sorted after the official instructions.
     // =========================================================================
 

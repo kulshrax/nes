@@ -940,7 +940,7 @@ impl Cpu {
         self.check_zero_or_negative(y);
     }
 
-    /// [UNDOCUMENTED] Decrement memory.
+    /// [UNDOCUMENTED] Decrement memory and compare.
     fn undoc_dcp(&mut self, am: impl AddressingMode, memory: &mut dyn Bus) {
         self.dec(am.clone(), memory);
         self.cmp(am, memory);

@@ -2,7 +2,7 @@ This directory contains a 6502 CPU test suite written by Klaus Dormann, obtained
 from this GitHub repo: https://github.com/Klaus2m5/6502_65C02_functional_tests
 
 The repo includes the test suite source code (in 6502 assembly) as well as 
-some prebuilt test binaries and a copy of the a56 assembler required to build
+some prebuilt test binaries and a copy of the a65 assembler required to build
 new binaries. The source files include comments explaining how to configure, 
 build, and run the tests. Configuring the tests (e.g., to disable decimal mode)
 requires editing and rebuilding them.
@@ -10,5 +10,5 @@ requires editing and rebuilding them.
 The 6502_functional_test_padded.bin test binary included in this repo was built
 with decimal mode disabled using the command in build.sh. The resulting binary
 produced by the assembler was missing some padding bytes (its unclear why this
-happened), so the included pad_front.sh scripts adds the appropriate padding to 
+happened), so the included pad_front.sh script adds the appropriate padding to 
 get the binary to run.

@@ -141,6 +141,16 @@ impl<M: PpuBus> Ppu<M> {
         }
     }
 
+    /// Load a value from PPU memory via the mapper.
+    fn mapper_load(&mut self, addr: Address) -> u8 {
+        self.mapper.ppu_load(&self.vram, addr)
+    }
+
+    /// Store a value to PPU memory via the mapper.
+    fn mapper_store(&mut self, addr: Address, value: u8) {
+        self.mapper.ppu_store(&mut self.vram, addr, value);
+    }
+
     pub fn tick(&mut self, frame: &mut [u8]) {
         self.render_name_table(frame, NAMETABLE_0_ADDR);
     }
@@ -148,7 +158,7 @@ impl<M: PpuBus> Ppu<M> {
     /// Render the specified nametable.
     pub fn render_name_table(&mut self, frame: &mut [u8], table: Address) {
         for pos in 0..960 {
-            let tile_num = self.mapper.ppu_load(&self.vram, table + pos as u16);
+            let tile_num = self.mapper_load(table + pos as u16);
             let tile = self.load_tile(Address(0), tile_num);
 
             // TODO: Get palette index from attribute table.
@@ -194,8 +204,8 @@ impl<M: PpuBus> Ppu<M> {
         let mut high = [0u8; 8];
         let base = table + tile_num as u16 * 16;
         for i in 0..8 {
-            low[i] = self.mapper.ppu_load(&self.vram, base + i as u16);
-            high[i] = self.mapper.ppu_load(&self.vram, base + i as u16 + 8u16);
+            low[i] = self.mapper_load(base + i as u16);
+            high[i] = self.mapper_load(base + i as u16 + 8u16);
         }
         Tile { low, high }
     }
@@ -208,11 +218,11 @@ impl<M: PpuBus> Ppu<M> {
         let palettes = if sprite { SPRITE_PALETTES } else { BG_PALETTES };
 
         let addr = palettes[palette_num as usize];
-        let color1 = self.mapper.ppu_load(&self.vram, addr);
-        let color2 = self.mapper.ppu_load(&self.vram, addr + 1u16);
-        let color3 = self.mapper.ppu_load(&self.vram, addr + 2u16);
+        let color1 = self.mapper_load(addr);
+        let color2 = self.mapper_load(addr + 1u16);
+        let color3 = self.mapper_load(addr + 2u16);
 
-        let background = self.mapper.ppu_load(&self.vram, BG_COLOR);
+        let background = self.mapper_load(BG_COLOR);
 
         Palette {
             background,
@@ -251,7 +261,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
                 let addr = read_ppuaddr(&self.registers.addr);
                 if addr < PALETTE_BASE_ADDR {
                     // Read from PPU address space via mapper.
-                    self.mapper.ppu_load(&self.vram, addr)
+                    self.mapper_load(addr)
                 } else {
                     let i = addr.alias(PALETTE_ADDR_BITS).as_usize();
                     self.palette[i]
@@ -299,8 +309,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
             Data => {
                 let addr = read_ppuaddr(&self.registers.addr);
                 if addr < PALETTE_BASE_ADDR {
-                    // Write to PPU address space via mapper.
-                    self.mapper.ppu_store(&mut self.vram, addr, value);
+                    self.mapper_store(addr, value);
                 } else {
                     let i = addr.alias(PALETTE_ADDR_BITS).as_usize();
                     self.palette[i] = value;

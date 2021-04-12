@@ -47,11 +47,11 @@ impl Bus for CpuMapper {
 pub type PpuMapper = Box<dyn PpuBus>;
 
 impl PpuBus for PpuMapper {
-    fn ppu_load(&mut self, vram: &Vram, addr: Address) -> u8 {
-        (**self).ppu_load(vram, addr)
+    fn ppu_load(&mut self, vram: &Vram, palette: &[u8; 32], addr: Address) -> u8 {
+        (**self).ppu_load(vram, palette, addr)
     }
 
-    fn ppu_store(&mut self, vram: &mut Vram, addr: Address, value: u8) {
-        (**self).ppu_store(vram, addr, value)
+    fn ppu_store(&mut self, vram: &mut Vram, palette: &mut [u8; 32], addr: Address, value: u8) {
+        (**self).ppu_store(vram, palette, addr, value)
     }
 }

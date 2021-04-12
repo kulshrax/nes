@@ -4,10 +4,16 @@ use crate::mem::{Address, Bus};
 
 pub const VRAM_SIZE: usize = 2048;
 
-pub const NAMETABLE_0_ADDR: Address = Address(0x2000);
-pub const _NAMETABLE_1_ADDR: Address = Address(0x2400);
-pub const _NAMETABLE_2_ADDR: Address = Address(0x2800);
-pub const _NAMETABLE_3_ADDR: Address = Address(0x2C00);
+pub static NAMETABLES: [Address; 4] = [
+    Address(0x2000),
+    Address(0x2400),
+    Address(0x2800),
+    Address(0x2C00),
+];
+
+/// Offset from the start of a nametable where the attribute table begins.
+/// The attribute table is located at the last 64 bytes of each nametable.
+const ATTRIBUTE_TABLE_OFFSET: u16 = 0x3C0;
 
 pub const PALETTE_BASE_ADDR: Address = Address(0x3F00);
 pub const PALETTE_ADDR_BITS: u8 = 5;
@@ -117,9 +123,9 @@ struct Registers {
 /// PPU's VRAM is passed into these methods (so that the mapper can choose to
 /// map a read or write to VRAM).
 pub trait PpuBus {
-    fn ppu_load(&mut self, vram: &Vram, addr: Address) -> u8;
+    fn ppu_load(&mut self, vram: &Vram, palette: &[u8; 32], addr: Address) -> u8;
 
-    fn ppu_store(&mut self, vram: &mut Vram, addr: Address, value: u8);
+    fn ppu_store(&mut self, vram: &mut Vram, palette: &mut [u8; 32], addr: Address, value: u8);
 }
 
 pub struct Ppu<M> {
@@ -143,16 +149,17 @@ impl<M: PpuBus> Ppu<M> {
 
     /// Load a value from PPU memory via the mapper.
     fn mapper_load(&mut self, addr: Address) -> u8 {
-        self.mapper.ppu_load(&self.vram, addr)
+        self.mapper.ppu_load(&self.vram, &self.palette, addr)
     }
 
     /// Store a value to PPU memory via the mapper.
     fn mapper_store(&mut self, addr: Address, value: u8) {
-        self.mapper.ppu_store(&mut self.vram, addr, value);
+        self.mapper
+            .ppu_store(&mut self.vram, &mut self.palette, addr, value);
     }
 
     pub fn tick(&mut self, frame: &mut [u8]) {
-        self.render_name_table(frame, NAMETABLE_0_ADDR);
+        self.render_name_table(frame, NAMETABLES[0]);
     }
 
     /// Render the specified nametable.
@@ -161,11 +168,43 @@ impl<M: PpuBus> Ppu<M> {
             let tile_num = self.mapper_load(table + pos as u16);
             let tile = self.load_tile(Address(0), tile_num);
 
-            // TODO: Get palette index from attribute table.
-            let palette = self.load_palette(0, false);
+            let attr_table = table + ATTRIBUTE_TABLE_OFFSET;
+            let attr = self.get_attribute(attr_table, tile_num);
+            let palette = self.load_palette(attr, false);
 
             tile.draw(frame, pos, palette);
         }
+    }
+
+    /// Get the palette index for a tile from the given attribute table.
+    pub fn get_attribute(&mut self, table: Address, tile_num: u8) -> u8 {
+        // Get position of the tile within the nametable's 32x30 tile grid.
+        let (tile_x, tile_y) = tile_coords(tile_num);
+
+        // Determine which byte of the attribute table contains the palette for
+        // this tile's block. Since each attribute is 2-bits wide, and each
+        // attribute controls the palette for a 16x16 pixel (2x2 tile) block,
+        // we need to scale down the coordinates by 4.
+        let attr_x = tile_x as u16 / 4;
+        let attr_y = tile_y as u16 / 4;
+        let attr_num = attr_y * 8 + attr_x;
+
+        let attr_byte = self.mapper_load(table + attr_num);
+
+        // Identify which quadrant (16x16 block) this tile falls into within the
+        // byte, and obtain the attribute by shifting the value accordingly.
+        let quad_x = (tile_x / 2) % 2;
+        let quad_y = (tile_y / 2) % 2;
+
+        let shift = match (quad_x, quad_y) {
+            (0, 0) => 0,
+            (0, 1) => 2,
+            (1, 0) => 4,
+            (1, 1) => 6,
+            _ => unreachable!(),
+        };
+
+        (attr_byte >> shift) & 3
     }
 
     /// Read the pattern tables from the PPU's address space and render them as
@@ -274,7 +313,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
             _ => self.registers.most_recent_value,
         };
 
-        log::debug!(
+        log::trace!(
             "Read from PPU register {}: {:#X}",
             PpuRegister::from(addr),
             value
@@ -288,7 +327,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
     fn store(&mut self, addr: Address, value: u8) {
         use PpuRegister::*;
 
-        log::debug!(
+        log::trace!(
             "Write to PPU register {}: {:#X}",
             PpuRegister::from(addr),
             value
@@ -446,4 +485,9 @@ struct Palette {
     color1: u8,
     color2: u8,
     color3: u8,
+}
+
+/// Get the coordinates for the specified tile within a nametable.
+fn tile_coords(tile_num: u8) -> (u8, u8) {
+    (tile_num % 32, tile_num / 32)
 }

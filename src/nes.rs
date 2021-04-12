@@ -54,18 +54,21 @@ impl Nes {
     /// Run the system for the duration of a single frame, writing the contents
     /// of the new frame to the give frame buffer.
     pub fn run_one_frame(&mut self, frame: &mut [u8], _input: &WinitInputHelper) {
-        for _ in 0..CPU_CYCLES_PER_FRAME {
+        for i in 0..CPU_CYCLES_PER_FRAME {
+            if i % 1000 == 0 {
+                log::debug!("cycle {}", i);
+            }
             // Create a view of the CPU's addres space, including all memory-mapped devices.
             let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
 
             // Run the CPU.
             self.cpu.tick(&mut memory);
 
-            // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
-            for _ in 0..3 {
-                self.ppu.tick(frame);
-            }
+            // // Run the PPU. The PPU's clock runs 3x faster than the CPU's.
+            // for _ in 0..3 {
+            // }
         }
+        self.ppu.tick(frame);
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::mem::{Address, Bus};
-use crate::ppu::{PpuBus, Vram, NAMETABLE_0_ADDR};
+use crate::ppu::{PpuBus, Vram, NAMETABLES};
 use crate::rom::{Mirroring, Rom};
 
 use super::Mapper;
@@ -58,7 +58,7 @@ impl PpuMapper0 {
         // reserved for the 2 pattern tables (4 KiB each, so 8 KiB total).
         // Nametable 0 is directly after the pattern tables, so use its base
         // address to check the size.
-        assert!(chr.len() == NAMETABLE_0_ADDR.as_usize());
+        assert!(chr.len() == NAMETABLES[0].as_usize());
         Self {
             chr,
             _mirroring: mirroring,
@@ -67,21 +67,25 @@ impl PpuMapper0 {
 }
 
 impl PpuBus for PpuMapper0 {
-    fn ppu_load(&mut self, vram: &Vram, addr: Address) -> u8 {
-        if addr < NAMETABLE_0_ADDR {
+    fn ppu_load(&mut self, vram: &Vram, palette: &[u8; 32], addr: Address) -> u8 {
+        if addr < NAMETABLES[0] {
             self.chr[addr.as_usize()]
+        } else if addr >= Address(0x3F00) {
+            palette[addr.alias(5).as_usize()]
         } else {
             // TODO: Implement nametable mirroring.
-            let i = addr.as_usize() - NAMETABLE_0_ADDR.as_usize();
+            let i = addr.as_usize() - NAMETABLES[0].as_usize();
             vram.0[i]
         }
     }
 
-    fn ppu_store(&mut self, vram: &mut Vram, addr: Address, value: u8) {
-        if addr >= NAMETABLE_0_ADDR {
+    fn ppu_store(&mut self, vram: &mut Vram, palette: &mut [u8; 32], addr: Address, value: u8) {
+        if addr >= NAMETABLES[0] {
             // TODO: Implement nametable mirroring.
-            let i = addr.as_usize() - NAMETABLE_0_ADDR.as_usize();
+            let i = addr.as_usize() - NAMETABLES[0].as_usize();
             vram.0[i] = value;
+        } else if addr >= Address(0x3F00) {
+            palette[addr.alias(5).as_usize()] = value;
         }
     }
 }

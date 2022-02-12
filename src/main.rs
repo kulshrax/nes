@@ -3,9 +3,9 @@
 use std::{fs::File, io::prelude::*, path::PathBuf, process::exit};
 
 use anyhow::Result;
+use clap::Parser;
 use env_logger;
 use log;
-use structopt::StructOpt;
 
 mod cpu;
 mod mapper;
@@ -21,8 +21,8 @@ use crate::nes::{Nes, ShowPatternUi};
 use crate::rom::Rom;
 use crate::ui::Ui;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "nes", about = "A toy NES emulator")]
+#[derive(Debug, Parser)]
+#[clap(name = "nes", about = "A toy NES emulator")]
 enum Command {
     Run(RunArgs),
     RunCpu(RunCpuArgs),
@@ -31,50 +31,50 @@ enum Command {
     ShowHeader(ShowHeaderArgs),
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Run a NES ROM file")]
+#[derive(Debug, Parser)]
+#[clap(about = "Run a NES ROM file")]
 struct RunArgs {
-    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(parse(from_os_str), help = "Path to ROM file")]
     rom: PathBuf,
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Run a raw MOS 6502 binary")]
+#[derive(Debug, Parser)]
+#[clap(about = "Run a raw MOS 6502 binary")]
 struct RunCpuArgs {
-    #[structopt(parse(from_os_str), help = "Path to binary file")]
+    #[clap(parse(from_os_str), help = "Path to binary file")]
     binary: PathBuf,
-    #[structopt(help = "Address at which to start execution")]
+    #[clap(help = "Address at which to start execution")]
     start: Option<Address>,
-    #[structopt(help = "Address at which to end execution")]
+    #[clap(help = "Address at which to end execution")]
     end: Option<Address>,
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Run a NES ROM file without video output")]
+#[derive(Debug, Parser)]
+#[clap(about = "Run a NES ROM file without video output")]
 struct RunHeadlessArgs {
-    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(parse(from_os_str), help = "Path to ROM file")]
     rom: PathBuf,
-    #[structopt(help = "Address at which to start execution")]
+    #[clap(help = "Address at which to start execution")]
     start: Option<Address>,
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Display the pattern table from a ROM file")]
+#[derive(Debug, Parser)]
+#[clap(about = "Display the pattern table from a ROM file")]
 struct ShowPatternArgs {
-    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(parse(from_os_str), help = "Path to ROM file")]
     rom: PathBuf,
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Display header information from a ROM file")]
+#[derive(Debug, Parser)]
+#[clap(about = "Display header information from a ROM file")]
 struct ShowHeaderArgs {
-    #[structopt(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(parse(from_os_str), help = "Path to ROM file")]
     rom: PathBuf,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
-    match Command::from_args() {
+    match Command::parse() {
         Command::Run(args) => cmd_run(args),
         Command::RunCpu(args) => cmd_run_cpu(args),
         Command::RunHeadless(args) => cmd_run_headless(args),

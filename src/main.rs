@@ -125,6 +125,11 @@ fn cmd_show_pattern(args: ShowPatternArgs) -> Result<()> {
 }
 
 fn cmd_show_header(args: ShowHeaderArgs) -> Result<()> {
+    if !log::log_enabled!(log::Level::Info) {
+        log::error!("This command will print nothing at the current log level.");
+        log::error!("Please re-run with: RUST_LOG=info");
+    }
+
     let rom = Rom::load(&args.rom)?;
     log::info!("iNES 1.0 ROM header: {:#?}", &rom.header);
     log::info!("First 8 bytes of PRG data: {:X?}", &rom.prg[..8]);

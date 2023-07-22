@@ -11,7 +11,7 @@ clap = { version = "3.0", features = ["derive"] }
 env_logger = "0.8"
 hex = "0.4"
 log = "0.4"
-nom = "6.0"
+nom = "7.0"
 pixels = "0.2"
 winit = "0.24"
 winit_input_helper = "0.9"

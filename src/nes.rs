@@ -69,6 +69,12 @@ impl Nes {
             // }
         }
         self.ppu.tick(frame);
+
+        // Create a view of the CPU's addres space, including all memory-mapped devices.
+        let mut memory = Memory::new(&mut self.ram, &mut self.ppu, &mut self.mapper);
+
+        // Run the CPU.
+        self.cpu.nmi(&mut memory);
     }
 }
 

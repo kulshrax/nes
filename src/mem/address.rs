@@ -1,9 +1,7 @@
-use std::{
-    borrow::Cow,
-    fmt,
-    ops::{Add, AddAssign, Sub, SubAssign},
-    str::FromStr,
-};
+use std::borrow::Cow;
+use std::fmt;
+use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Error};
 use hex::FromHex;
@@ -239,6 +237,24 @@ impl SubAssign<i16> for Address {
         } else {
             self.0 = self.0.wrapping_sub(other as u16);
         }
+    }
+}
+
+impl Add<usize> for Address {
+    type Output = Self;
+
+    fn add(self, other: usize) -> Self {
+        debug_assert!(other <= u16::MAX as usize);
+        Self(self.0.wrapping_add(other as u16))
+    }
+}
+
+impl Sub<usize> for Address {
+    type Output = Self;
+
+    fn sub(self, other: usize) -> Self {
+        debug_assert!(other <= u16::MAX as usize);
+        Self(self.0.wrapping_sub(other as u16))
     }
 }
 

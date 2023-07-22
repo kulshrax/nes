@@ -158,6 +158,11 @@ impl<M: PpuBus> Ppu<M> {
             .ppu_store(&mut self.vram, &mut self.palette, addr, value);
     }
 
+    /// Replace the entire contents of OAM with the given data.
+    pub fn oam_dma(&mut self, oam_data: [u8; 256]) {
+        self.oam = oam_data;
+    }
+
     pub fn tick(&mut self, frame: &mut [u8]) {
         self.render_name_table(frame, NAMETABLES[0]);
     }

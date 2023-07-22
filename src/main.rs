@@ -1,11 +1,12 @@
 // #![deny(warnings)]
 
-use std::{fs::File, io::prelude::*, path::PathBuf, process::exit};
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
+use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
-use env_logger;
-use log;
 
 mod cpu;
 mod mapper;
@@ -34,14 +35,14 @@ enum Command {
 #[derive(Debug, Parser)]
 #[clap(about = "Run a NES ROM file")]
 struct RunArgs {
-    #[clap(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(help = "Path to ROM file")]
     rom: PathBuf,
 }
 
 #[derive(Debug, Parser)]
 #[clap(about = "Run a raw MOS 6502 binary")]
 struct RunCpuArgs {
-    #[clap(parse(from_os_str), help = "Path to binary file")]
+    #[clap(help = "Path to binary file")]
     binary: PathBuf,
     #[clap(help = "Address at which to start execution")]
     start: Option<Address>,
@@ -52,7 +53,7 @@ struct RunCpuArgs {
 #[derive(Debug, Parser)]
 #[clap(about = "Run a NES ROM file without video output")]
 struct RunHeadlessArgs {
-    #[clap(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(help = "Path to ROM file")]
     rom: PathBuf,
     #[clap(help = "Address at which to start execution")]
     start: Option<Address>,
@@ -61,14 +62,14 @@ struct RunHeadlessArgs {
 #[derive(Debug, Parser)]
 #[clap(about = "Display the pattern table from a ROM file")]
 struct ShowPatternArgs {
-    #[clap(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(help = "Path to ROM file")]
     rom: PathBuf,
 }
 
 #[derive(Debug, Parser)]
 #[clap(about = "Display header information from a ROM file")]
 struct ShowHeaderArgs {
-    #[clap(parse(from_os_str), help = "Path to ROM file")]
+    #[clap(help = "Path to ROM file")]
     rom: PathBuf,
 }
 

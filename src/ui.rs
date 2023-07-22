@@ -2,12 +2,10 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use pixels::{Pixels, SurfaceTexture};
-use winit::{
-    dpi::LogicalSize,
-    event::Event,
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-};
+use winit::dpi::LogicalSize;
+use winit::event::Event;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 pub trait Ui: Sized + 'static {
@@ -53,14 +51,16 @@ pub trait Ui: Sized + 'static {
                 return;
             }
 
-            if input.quit() {
+            if input.close_requested() || input.destroyed() {
                 log::info!("Exiting due to user request");
                 *control_flow = ControlFlow::Exit;
                 return;
             }
 
             if let Some(size) = input.window_resized() {
-                pixels.resize(size.width, size.height);
+                if let Err(e) = pixels.resize_surface(size.width, size.height) {
+                    log::error!("Failed to resize window: {}", e);
+                }
             };
 
             let now = Instant::now();
@@ -68,7 +68,7 @@ pub trait Ui: Sized + 'static {
             time = now;
 
             log::trace!("Updating frame after: {:?}", &dt);
-            if let Err(e) = self.update(pixels.get_frame(), &input, dt) {
+            if let Err(e) = self.update(pixels.frame_mut(), &input, dt) {
                 log::error!("Exiting due to emulation error: {}", e);
                 *control_flow = ControlFlow::Exit;
                 return;

@@ -6,12 +6,12 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0"
-bitflags = "1.2"
-clap = { version = "3.0", features = ["derive"] }
-env_logger = "0.8"
+bitflags = "2.3"
+clap = { version = "4.3", features = ["derive"] }
+env_logger = "0.10"
 hex = "0.4"
 log = "0.4"
 nom = "7.0"
-pixels = "0.2"
-winit = "0.24"
-winit_input_helper = "0.9"
+pixels = "0.13"
+winit = "0.28"
+winit_input_helper = "0.14"

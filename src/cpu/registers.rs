@@ -44,6 +44,7 @@ impl fmt::Display for Registers {
 
 bitflags! {
     /// Values corresponding to the bit flags stored in the status (P) register.
+    #[derive(Clone, Copy, Debug)]
     pub struct Flags: u8 {
         /// Indicates that the last operation resulted in an overflow from bit 8
         /// or an underflow from bit 0.
@@ -128,7 +129,15 @@ impl fmt::Display for Flags {
         write!(
             f,
             "{:#X} [{}{}{}{}{}{}{}{}]",
-            self.bits, n, v, u, b, d, i, z, c
+            self.bits(),
+            n,
+            v,
+            u,
+            b,
+            d,
+            i,
+            z,
+            c
         )
     }
 }

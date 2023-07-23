@@ -151,7 +151,7 @@ impl<'a, M: Bus, P: PpuBus> Memory<'a, M, P> {
     pub fn read_io_register(&mut self, addr: Address) -> u8 {
         // Read from an IO register.
         log::error!(
-            "read from IO register {} ({})",
+            "Read from IO register {} ({})",
             io_register_name(addr),
             addr
         );
@@ -178,7 +178,7 @@ impl<'a, M: Bus, P: PpuBus> Memory<'a, M, P> {
             SND_CHN => {}
             JOY1 => {}
             JOY2 => {}
-            _ => {}
+            _ => log::error!("Address is not an IO register: {}", addr),
         };
         0
     }
@@ -212,14 +212,15 @@ impl<'a, M: Bus, P: PpuBus> Memory<'a, M, P> {
             OAMDMA => {
                 let mut oam_data = [0u8; 256];
                 let start = Address::from([0, value]);
-                log::debug!("loading OAM data from address {}", &start);
+                log::debug!("Loading OAM data from address {}", &start);
                 self.load_range(start, &mut oam_data);
+                dbg!(&oam_data);
                 self.ppu.oam_dma(oam_data);
             }
             SND_CHN => {}
             JOY1 => {}
             JOY2 => {}
-            _ => {}
+            _ => log::error!("Address is not an IO register: {}", addr),
         };
     }
 }

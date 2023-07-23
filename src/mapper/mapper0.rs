@@ -68,7 +68,7 @@ impl PpuMapper0 {
 
 impl PpuBus for PpuMapper0 {
     fn ppu_load(&mut self, vram: &Vram, palette: &[u8; 32], addr: Address) -> u8 {
-        if addr < NAMETABLES[0] {
+        let value = if addr < NAMETABLES[0] {
             self.chr[addr.as_usize()]
         } else if addr >= Address(0x3F00) {
             palette[addr.alias(5).as_usize()]
@@ -76,10 +76,23 @@ impl PpuBus for PpuMapper0 {
             // TODO: Implement nametable mirroring.
             let i = addr.as_usize() - NAMETABLES[0].as_usize();
             vram.0[i]
-        }
+        };
+
+        log::trace!(
+            "Reading value from PPU memory mapped to CPU address {}: {:#X}",
+            addr,
+            value
+        );
+
+        value
     }
 
     fn ppu_store(&mut self, vram: &mut Vram, palette: &mut [u8; 32], addr: Address, value: u8) {
+        log::trace!(
+            "Writing value from PPU memory mapped to CPU address {}: {:#X}",
+            addr,
+            value
+        );
         if addr >= NAMETABLES[0] {
             // TODO: Implement nametable mirroring.
             let i = addr.as_usize() - NAMETABLES[0].as_usize();

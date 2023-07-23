@@ -318,7 +318,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
             _ => self.registers.most_recent_value,
         };
 
-        log::trace!(
+        log::debug!(
             "Read from PPU register {}: {:#X}",
             PpuRegister::from(addr),
             value
@@ -332,7 +332,7 @@ impl<M: PpuBus> Bus for Ppu<M> {
     fn store(&mut self, addr: Address, value: u8) {
         use PpuRegister::*;
 
-        log::trace!(
+        log::debug!(
             "Write to PPU register {}: {:#X}",
             PpuRegister::from(addr),
             value

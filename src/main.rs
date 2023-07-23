@@ -9,6 +9,7 @@ use anyhow::Result;
 use clap::Parser;
 
 mod cpu;
+mod io;
 mod mapper;
 mod mem;
 mod nes;

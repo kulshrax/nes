@@ -319,8 +319,9 @@ impl<M: PpuBus> Bus for Ppu<M> {
         };
 
         log::debug!(
-            "Read from PPU register {}: {:#X}",
+            "Read from PPU register {} ({}): {:#X}",
             PpuRegister::from(addr),
+            addr,
             value
         );
 
@@ -333,8 +334,9 @@ impl<M: PpuBus> Bus for Ppu<M> {
         use PpuRegister::*;
 
         log::debug!(
-            "Write to PPU register {}: {:#X}",
+            "Write to PPU register {} ({}): {:#X}",
             PpuRegister::from(addr),
+            addr,
             value
         );
 

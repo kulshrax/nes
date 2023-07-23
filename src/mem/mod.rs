@@ -2,6 +2,7 @@ pub use address::Address;
 
 mod address;
 
+use crate::io::IoRegister;
 use crate::ppu::{Ppu, PpuBus};
 
 const RAM_SIZE: usize = 2048;
@@ -10,57 +11,6 @@ const RAM_ADDR_BITS: u8 = 11;
 const PPU_REG_START: Address = Address(0x2000);
 const IO_REG_START: Address = Address(0x4000);
 const CART_SPACE_START: Address = Address(0x4020);
-
-const SQ1_VOL: Address = Address(0x4000);
-const SQ1_SWEEP: Address = Address(0x4001);
-const SQ1_LO: Address = Address(0x4002);
-const SQ1_HI: Address = Address(0x4003);
-const SQ2_VOL: Address = Address(0x4004);
-const SQ2_SWEEP: Address = Address(0x4005);
-const SQ2_LO: Address = Address(0x4006);
-const SQ2_HI: Address = Address(0x4007);
-const TRI_LINEAR: Address = Address(0x4008);
-const TRI_LO: Address = Address(0x400A);
-const TRI_HI: Address = Address(0x400B);
-const NOISE_VOL: Address = Address(0x400C);
-const NOISE_LO: Address = Address(0x400E);
-const NOISE_HI: Address = Address(0x400F);
-const DMC_FREQ: Address = Address(0x4010);
-const DMC_RAW: Address = Address(0x4011);
-const DMC_START: Address = Address(0x4012);
-const DMC_LEN: Address = Address(0x4013);
-const OAMDMA: Address = Address(0x4014);
-const SND_CHN: Address = Address(0x4015);
-const JOY1: Address = Address(0x4016);
-const JOY2: Address = Address(0x4017);
-
-fn io_register_name(addr: Address) -> &'static str {
-    match addr {
-        SQ1_VOL => "SQ1_VOL",
-        SQ1_SWEEP => "SQ1_SWEEP",
-        SQ1_LO => "SQ1_LO",
-        SQ1_HI => "SQ1_HI",
-        SQ2_VOL => "SQ2_VOL",
-        SQ2_SWEEP => "SQ2_SWEEP",
-        SQ2_LO => "SQ2_LO",
-        SQ2_HI => "SQ2_HI",
-        TRI_LINEAR => "TRI_LINEAR",
-        TRI_LO => "TRI_LO",
-        TRI_HI => "TRI_HI",
-        NOISE_VOL => "NOISE_VOL",
-        NOISE_LO => "NOISE_LO",
-        NOISE_HI => "NOISE_HI",
-        DMC_FREQ => "DMC_FREQ",
-        DMC_RAW => "DMC_RAW",
-        DMC_START => "DMC_START",
-        DMC_LEN => "DMC_LEN",
-        OAMDMA => "OAMDMA",
-        SND_CHN => "SND_CHN",
-        JOY1 => "JOY1",
-        JOY2 => "JOY2",
-        _ => "invalid",
-    }
-}
 
 /// Trait representing the CPU's address bus. The actual destination of loads
 /// and stores are mapped by hardware to several possible locations, including
@@ -149,67 +99,64 @@ impl<'a, M: Bus, P: PpuBus> Memory<'a, M, P> {
     }
 
     pub fn read_io_register(&mut self, addr: Address) -> u8 {
-        // Read from an IO register.
-        log::error!(
-            "Read from IO register {} ({})",
-            io_register_name(addr),
-            addr
-        );
-        match addr {
-            SQ1_VOL => {}
-            SQ1_SWEEP => {}
-            SQ1_LO => {}
-            SQ1_HI => {}
-            SQ2_VOL => {}
-            SQ2_SWEEP => {}
-            SQ2_LO => {}
-            SQ2_HI => {}
-            TRI_LINEAR => {}
-            TRI_LO => {}
-            TRI_HI => {}
-            NOISE_VOL => {}
-            NOISE_LO => {}
-            NOISE_HI => {}
-            DMC_FREQ => {}
-            DMC_RAW => {}
-            DMC_START => {}
-            DMC_LEN => {}
-            OAMDMA => {}
-            SND_CHN => {}
-            JOY1 => {}
-            JOY2 => {}
-            _ => log::error!("Address is not an IO register: {}", addr),
+        let reg = IoRegister::from(addr);
+
+        use IoRegister::*;
+        let value = match reg {
+            Sq1Vol => 0,
+            Sq1Sweep => 0,
+            Sq1Lo => 0,
+            Sq1Hi => 0,
+            Sq2Vol => 0,
+            Sq2Sweep => 0,
+            Sq2Lo => 0,
+            Sq2Hi => 0,
+            TriLinear => 0,
+            TriLo => 0,
+            TriHi => 0,
+            NoiseVol => 0,
+            NoiseLo => 0,
+            NoiseHi => 0,
+            DmcFreq => 0,
+            DmcRaw => 0,
+            DmcStart => 0,
+            DmcLen => 0,
+            OamDma => 0,
+            SndChn => 0,
+            Joy1 => 0,
+            Joy2 => 0,
         };
-        0
+        log::debug!("Read from IO register {} ({}): {:#X}", reg, addr, value);
+
+        value
     }
 
     pub fn write_io_register(&mut self, addr: Address, value: u8) {
-        log::debug!(
-            "write to IO register {} ({}): {}",
-            io_register_name(addr),
-            addr,
-            value
-        );
-        match addr {
-            SQ1_VOL => {}
-            SQ1_SWEEP => {}
-            SQ1_LO => {}
-            SQ1_HI => {}
-            SQ2_VOL => {}
-            SQ2_SWEEP => {}
-            SQ2_LO => {}
-            SQ2_HI => {}
-            TRI_LINEAR => {}
-            TRI_LO => {}
-            TRI_HI => {}
-            NOISE_VOL => {}
-            NOISE_LO => {}
-            NOISE_HI => {}
-            DMC_FREQ => {}
-            DMC_RAW => {}
-            DMC_START => {}
-            DMC_LEN => {}
-            OAMDMA => {
+        let reg = IoRegister::from(addr);
+
+        log::debug!("Write to IO register {} ({}): {:#X}", reg, addr, value);
+
+        use IoRegister::*;
+        match reg {
+            Sq1Vol => {}
+            Sq1Sweep => {}
+            Sq1Lo => {}
+            Sq1Hi => {}
+            Sq2Vol => {}
+            Sq2Sweep => {}
+            Sq2Lo => {}
+            Sq2Hi => {}
+            TriLinear => {}
+            TriLo => {}
+            TriHi => {}
+            NoiseVol => {}
+            NoiseLo => {}
+            NoiseHi => {}
+            DmcFreq => {}
+            DmcRaw => {}
+            DmcStart => {}
+            DmcLen => {}
+            OamDma => {
                 let mut oam_data = [0u8; 256];
                 let start = Address::from([0, value]);
                 log::debug!("Loading OAM data from address {}", &start);
@@ -217,10 +164,9 @@ impl<'a, M: Bus, P: PpuBus> Memory<'a, M, P> {
                 dbg!(&oam_data);
                 self.ppu.oam_dma(oam_data);
             }
-            SND_CHN => {}
-            JOY1 => {}
-            JOY2 => {}
-            _ => log::error!("Address is not an IO register: {}", addr),
+            SndChn => {}
+            Joy1 => {}
+            Joy2 => {}
         };
     }
 }
